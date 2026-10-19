@@ -1,0 +1,150 @@
+# Players' shops' wording. Every line can be rewritten in plugins/RainsCore/messages.yml.
+shops:
+  only-a-player: "<red>A console with a shop. Bold. Players only, though."
+  no-such-player: "<red>Nobody called <white><player></white> has ever set foot here."
+  changed: "<green>Done. Capitalism thanks you."
+  opened: "<green>Open for business: <white><shop></white>, selling <white><ware></white>. Try not to go bankrupt."
+  opened-unpriced: "<yellow><white><shop></white> exists, but it gives nothing away for free — set a price in the back room, then open it."
+  removed: "<gray><white><shop></white> is just a container again. Its stock stays put."
+  handed-over: "<green><white><shop></white> now belongs to <white><player></white>. Generous, or desperate?"
+  trusted: "<green><white><player></white> now helps at <white><shop></white>."
+  untrusted: "<gray><white><player></white> no longer helps at <white><shop></white>."
+  how-to-open: "<gray>Look at a chest or barrel, hold what it should sell and type <white>/bazaar create <price></white> — or write <white>[shop]</white> on a sign on it."
+  look-at-container: "<red>Look at a chest or barrel first. Staring at the sky sells nothing."
+  look-at-shop: "<red>Look at a shop first — that one is just a box."
+  info: "<gold><shop></gold> <gray>by <white><owner></white>: <white><bundle>× <ware></white><newline><gray>Sells for <gold><buy></gold>, buys for <gold><sell></gold> · <white><stock></white> in stock"
+  create:
+    usage: "<gray>/bazaar create <dark_gray>[selling price] [buying price] [bundle] [name]</dark_gray> — prices like 10 or 1.5k, 0 for none."
+  price:
+    usage: "<gray>/bazaar price <white>buy|sell</white> <white><amount></white> — while looking at your shop."
+  trust:
+    usage: "<gray>/bazaar trust <white><player></white> [clerk|manager] · /bazaar untrust <white><player></white>"
+  rent:
+    paid: "<green>Rent paid. The landlord is pleased, for once."
+
+  trade:
+    bought: "<green>Bought <white><items>× <ware></white> for <gold><amount></gold> at <white><shop></white>."
+    sold: "<green>Sold <white><items>× <ware></white> for <gold><amount></gold> to <white><shop></white>."
+    trimmed: "<yellow>Not all of it, though: <reason>"
+
+  refused:
+    closed: "<red>Staff closed this shop. Whatever it did, it did it well."
+    paused: "<yellow>Closed for now. The owner is probably counting coins."
+    unpaid: "<red>Closed: its rent is unpaid. The landlord has spoken."
+    own-shop: "<red>Trading with your own shop? The only winner would be the server's cut."
+    not-selling: "<red>This shop sells nothing. It only buys."
+    not-buying: "<red>This shop buys nothing. It only sells."
+    out-of-stock: "<red>Sold out. Somebody beat you to it."
+    shop-full: "<red>The shop's container is full. Even shops have limits."
+    buy-limit-reached: "<red>The shop has all of that it wants, thanks."
+    you-cannot-afford: "<red>You cannot afford that. Have you tried being richer?"
+    owner-cannot-afford: "<red>The owner cannot pay for that right now. Awkward."
+    your-inventory-full: "<red>Your inventory is full. Make room, then come back."
+    you-have-none: "<red>You do not have enough of that to sell."
+    no-economy: "<red>There is no economy on this server, so money is purely theoretical."
+    busy: "<yellow>Somebody else is trading here this very moment. Try again."
+    nothing-asked: "<red>Nothing to do there."
+    money-refused: "<red>The bank said no. Nothing was taken, nothing was moved."
+    gone: "<red>That shop is gone."
+    not-a-container: "<red>That cannot be a shop. Chests, trapped chests and barrels, please."
+    already-a-shop: "<red>That already is a shop."
+    not-your-land: "<red>Not your land. Shops go where you may build."
+    too-many-shops: "<red>You have as many shops as you may. Retail empires have rules."
+    cannot-pay-to-open: "<red>You cannot pay the price of opening a shop."
+    nothing-to-sell: "<red>Hold the item it should sell, or put one in the container."
+    bad-name: "<red>That name will not do: too long, empty, or full of strange marks."
+    price-too-high: "<red>That price is above what this server allows. Typo with six zeros?"
+    sells-above-buy: "<red>Paying more than you ask? People would sell it back to you forever."
+    no-price: "<red>Give it a price first — selling, buying, or both."
+    not-allowed: "<red>That is not yours to do."
+    world-not-allowed: "<red>No shops in this world."
+    not-a-customer: "<red>Only somebody who traded there lately may review it."
+    review-too-long: "<red>That review is too long, or has odd marks in it."
+    bad-stars: "<red>One to five stars. Not six. Not zero."
+    too-many-stores: "<red>You have as many stores as you may."
+    last-store: "<red>That is your last store, and it still has shops. Close or move them first."
+    too-many-statues: "<red>That store has as many statues as it may. Vanity has limits."
+    no-statues: "<red>Statues are switched off on this server."
+    not-here: "<red>That shop is on another server. Go there first."
+    too-far: "<red>That shop is too far away to trade with from here."
+    no-travel: "<red>Travelling to shops is switched off here."
+
+  guard:
+    close-first: "<yellow>That is your shop <white><shop></white>. Close it in its back room first (sneak and right click)."
+    not-yours: "<red>That is <white><shop></white>, and it is not yours to break."
+    not-beside: "<red>That would join <white><shop></white>'s chest. Nice try."
+
+  sign:
+    not-on-container: "<red>Put the sign on a chest or barrel."
+    unreadable: "<red>That sign is unreadable. Line 2: <white>B 10 : S 4</white>, line 3: <white>x16</white>."
+    line-1: "<dark_blue><bold>[Shop]"
+    line-2: "<dark_green>B <buy> <dark_gray>: <dark_red>S <sell>"
+    line-3: "<black><bundle>× <ware>"
+    line-4: "<dark_gray><owner>"
+
+  display:
+    name: "<gold><bold><shop></bold> <gray>· <owner>"
+    buy: "<green>Buy <bundle> for <price>"
+    sell: "<aqua>Buys <bundle> for <price>"
+    in-stock: "<gray><stock> in stock"
+    sold-out: "<red>Sold out"
+    closed: "<yellow>Closed"
+
+  statue:
+    name: "<gold><store>"
+    motto: "<gray><motto>"
+    no-motto: "<gray>Click to shop"
+    placed: "<green>A statue of you now stands here for <white><store></white>. Handsome."
+    removed: "<gray>The statue for <white><store></white> is gone."
+    closed: "<red>This statue's store has closed. It will be gone soon."
+    which: "<yellow>You have several stores: pick one, then use its page to put up a statue."
+    where: "<gray>A statue at <white><where></white> on <white><server></white>"
+
+  store:
+    usage: "<gray>/bazaar newstore <white><name></white>"
+    opened: "<green>Your store <white><store></white> is open. Now put something in it."
+    closed: "<gray><white><store></white> is closed. Its shops moved to another store of yours."
+    about: "<gold><store></gold> <gray>by <white><owner></white>"
+
+  review:
+    thanks: "<green>Thanks for reviewing <white><shop></white>. The owner will hear about it."
+    removed: "<gray>Took down <white><player></white>'s review."
+    line: "<gold><stars></gold> <white><player></white><gray>: <text>"
+
+  log:
+    line: "<gray><player> — <white><items></white> items, <gold><amount></gold>"
+
+  prompt:
+    busy: "<red>You are already being asked something. Answer that first."
+    buy-price: "<yellow>Type the selling price per bundle in chat — 0 to stop selling, a dash to keep it."
+    sell-price: "<yellow>Type the buying price per bundle in chat — 0 to stop buying, a dash to keep it."
+    name: "<yellow>Type the shop's new name in chat, or a dash to keep it."
+    store-name: "<yellow>Type the store's name in chat, or a dash to give up."
+    motto: "<yellow>Type the store's motto in chat; a dash clears it."
+    review: "<yellow>Type your review in chat — or a dash for stars only."
+    search: "<yellow>Type what you are looking for — or a dash for everything."
+    not-money: "<red><white><typed></white> is not an amount of money. Try 12, 1.5k or 0."
+
+  travel:
+    counting: "<gray>Off to <white><shop></white> in <white><seconds></white>…"
+    arrived: "<green>Welcome to <white><shop></white>. Wallet ready?"
+    cancelled: "<gray>Trip to <white><shop></white> cancelled — you moved. Nothing was charged."
+    failed: "<red>Could not get you to <white><shop></white>. Nothing was charged."
+
+  notice:
+    while-away: "<gold>While you were away, at your shops:"
+    summary-sold: "<gray> · <white><trades></white> sales, <white><items></white> items, <green>+<amount>"
+    summary-bought: "<gray> · <white><trades></white> purchases, <white><items></white> items, <red>-<amount>"
+    and-more: "<gray> · and <white><count></white> more, in each shop's log."
+    sold: "<green><who> bought <white><items></white> at <white><shop></white>: <gold>+<amount>"
+    bought: "<aqua><who> sold you <white><items></white> at <white><shop></white>: <gold>-<amount>"
+    out-of-stock: "<yellow><white><shop></white> is sold out. Customers are sad."
+    low-stock: "<yellow><white><shop></white> is running low: <white><items></white> left."
+    full: "<yellow><white><shop></white> is full and cannot buy any more."
+    cannot-afford: "<yellow><white><who></white> wanted to sell to <white><shop></white>, but you could not pay <gold><amount></gold>."
+    reviewed: "<gold><who></gold> <gray>gave <white><shop></white> <white><items></white> stars."
+    rent-paid: "<gray>Rent for <white><shop></white> paid: <gold><amount></gold>."
+    unpaid: "<red><white><shop></white> closed: you could not pay its rent of <gold><amount></gold>. /bazaar rent opens it again."
+    closed: "<red>Staff (<white><who></white>) closed your shop <white><shop></white>."
+    reopened: "<green>Staff (<white><who></white>) reopened your shop <white><shop></white> — open it in its back room."
+    removed: "<red>Staff (<white><who></white>) removed your shop <white><shop></white>. Its stock is still in the container."

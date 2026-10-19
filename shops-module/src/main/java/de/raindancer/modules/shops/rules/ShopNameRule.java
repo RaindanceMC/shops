@@ -12,7 +12,7 @@ public final class ShopNameRule implements IShopsRule {
             return Optional.of(Refusal.BAD_NAME);
         }
         for (char each : name.toCharArray()) {
-            if (Character.isISOControl(each) || each == '<' || each == '>' || each == '§') {
+            if (Character.isISOControl(each) || each == '<' || each == '>' || each == '\u00a7') {
                 return Optional.of(Refusal.BAD_NAME);
             }
         }

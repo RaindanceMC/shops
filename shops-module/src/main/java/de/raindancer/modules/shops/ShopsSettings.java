@@ -19,6 +19,7 @@ import org.bukkit.Material;
         @Topic(path = "shops/trading", title = "Trading", icon = Material.EMERALD),
         @Topic(path = "shops/money", title = "Fees, rent and the server's cut", icon = Material.GOLD_INGOT),
         @Topic(path = "shops/finding", title = "Finding shops", icon = Material.SPYGLASS),
+        @Topic(path = "shops/stores", title = "Stores and statues", icon = Material.PLAYER_HEAD),
 })
 public record ShopsSettings(
 
@@ -140,14 +141,39 @@ public record ShopsSettings(
         @In("shops/trading") @Title("Longest review") @Range(min = 10, max = 256)
         @Describe("Characters.")
         @Key("longest-review")
-        int longestReview) {
+        int longestReview,
+
+        @In("shops/stores") @Title("Stores one player may have") @Range(min = 1, max = 100)
+        @Describe("A store is a name over any number of its owner's shops — a smithy, a farm stand — and what a "
+                + "statue of its owner opens. Every player has one to start with.")
+        @Key("most-stores")
+        int mostStores,
+
+        @In("shops/stores") @Title("Statues per store") @Range(min = 0, max = 20)
+        @Describe("How many statues of its owner a store may have standing. Clicking one opens the store, with "
+                + "every one of its shops to trade at. Zero switches statues off.")
+        @Key("statues-per-store")
+        int statuesPerStore,
+
+        @In("shops/stores") @Title("Price of a statue")
+        @Describe("Money taken for placing a statue. 0 is free; staff with rainsshops.bypass.fees pay nothing.")
+        @Key("statue-price")
+        String statuePrice,
+
+        @In("shops/stores") @Title("Trade from a statue at any distance")
+        @Describe("Whether a store's statue trades at shops wherever they are on this server, as long as their "
+                + "chunk is loaded. Off, only at shops within 64 blocks of the statue — a statue then fronts a "
+                + "market hall rather than the whole map.")
+        @Key("statues-reach-everywhere")
+        boolean statuesReachEverywhere) {
 
     public static final ShopsSettings DEFAULTS = new ShopsSettings(
             "CHEST, TRAPPED_CHEST, BARREL", "", 5, 24, true,
             "0", "0", 8, 0, "0",
             true, true, true, 180,
             true, true, true, 3, "0",
-            30, 120);
+            30, 120,
+            3, 2, "0", true);
 
     public int cutPercent() {
         return Math.max(0, Math.min(100, serverCutPercent));
@@ -181,38 +207,50 @@ public record ShopsSettings(
         return Math.max(7, Math.min(3650, keepTradesDays));
     }
 
+    public int storeLimit() {
+        return Math.max(1, Math.min(100, mostStores));
+    }
+
+    public int statueLimit() {
+        return Math.max(0, Math.min(20, statuesPerStore));
+    }
+
     public ShopsSettings withServerCutPercent(int percent) {
         return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, openingPrice,
                 rentPerWeek, mostWeeksAhead, percent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice, reviewDays,
-                longestReview);
+                longestReview, mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
     }
 
     public ShopsSettings withPartialTrades(boolean partial) {
         return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, openingPrice,
                 rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partial, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview);
+                reviewDays, longestReview,
+                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
     }
 
     public ShopsSettings withRentPerWeek(String rent) {
         return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, openingPrice,
                 rent, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview);
+                reviewDays, longestReview,
+                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
     }
 
     public ShopsSettings withOpeningPrice(String price) {
         return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, price,
                 rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview);
+                reviewDays, longestReview,
+                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
     }
 
     public ShopsSettings withMostShops(int most) {
         return new ShopsSettings(containers, closedWorlds, most, longestName, signShops, openingPrice,
                 rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview);
+                reviewDays, longestReview,
+                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
     }
 }

@@ -19,7 +19,7 @@ public final class ReviewRule implements IShopsRule {
             return Optional.of(Refusal.BAD_STARS);
         }
         String said = text == null ? "" : text.strip();
-        if (said.length() > longest || said.indexOf('<') >= 0 || said.indexOf('§') >= 0) {
+        if (said.length() > longest || said.indexOf('<') >= 0 || said.indexOf('\u00a7') >= 0) {
             return Optional.of(Refusal.REVIEW_TOO_LONG);
         }
         return Optional.empty();
