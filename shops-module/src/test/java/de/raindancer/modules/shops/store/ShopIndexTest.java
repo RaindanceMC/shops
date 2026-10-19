@@ -26,7 +26,7 @@ class ShopIndexTest {
     private static final UUID ALICE = UUID.nameUUIDFromBytes("alice".getBytes());
 
     private static Shop shop(int x) {
-        return Shop.open(UUID.nameUUIDFromBytes(("shop" + x).getBytes()), ALICE, "Alice", "Shop " + x,
+        return Shop.open(UUID.nameUUIDFromBytes(("shop" + x).getBytes()), ALICE, ALICE, "Alice", "Shop " + x,
                 new Spot("s", "world", x, 64, 0), new Ware("DIAMOND", "", null),
                 Prices.selling(Money.of(100), 1), 0, 0);
     }
@@ -56,7 +56,7 @@ class ShopIndexTest {
         ShopIndex index = new ShopIndex();
         Shop one = shop(1);
         index.put(one);
-        Shop elsewhere = new Shop(one.id(), one.owner(), one.ownerName(), one.name(), one.spot().offset(5, 0, 0),
+        Shop elsewhere = new Shop(one.id(), one.store(), one.owner(), one.ownerName(), one.name(), one.spot().offset(5, 0, 0),
                 one.ware(), one.prices(), one.status(), one.staff(), one.createdAt(), one.rentPaidTo(),
                 one.buyLimit(), one.lowStockAt(), one.display());
         index.put(elsewhere);

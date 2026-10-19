@@ -28,7 +28,7 @@ public final class ShopStore {
     public record Known(int stock, int room, long sales) {
     }
 
-    private static final String COLUMNS = "id, server, world, x, y, z, owner, owner_name, name, material, ware, "
+    private static final String COLUMNS = "id, store, server, world, x, y, z, owner, owner_name, name, material, ware, "
             + "label, buy, sell, bundle, status, created, rent_paid_to, buy_limit, low_stock, display";
 
     private final Database database;
@@ -40,8 +40,8 @@ public final class ShopStore {
     public boolean save(Shop shop) {
         return database.write(connection -> {
             try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO shop (" + COLUMNS + ", spot) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
-                            + "ON CONFLICT(id) DO UPDATE SET server = excluded.server, world = excluded.world, "
+                    "INSERT INTO shop (" + COLUMNS + ", spot) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                            + "ON CONFLICT(id) DO UPDATE SET store = excluded.store, server = excluded.server, world = excluded.world, "
                             + "x = excluded.x, y = excluded.y, z = excluded.z, spot = excluded.spot, "
                             + "owner = excluded.owner, owner_name = excluded.owner_name, name = excluded.name, "
                             + "material = excluded.material, ware = excluded.ware, label = excluded.label, "
@@ -51,6 +51,7 @@ public final class ShopStore {
                             + "display = excluded.display")) {
                 int at = 1;
                 row.setString(at++, shop.id().toString());
+                row.setString(at++, shop.store().toString());
                 row.setString(at++, shop.spot().server());
                 row.setString(at++, shop.spot().world());
                 row.setInt(at++, shop.spot().x());
@@ -177,12 +178,12 @@ public final class ShopStore {
 
     private static Shop read(ResultSet rows, Map<String, Map<UUID, Role>> staff) throws SQLException {
         String id = rows.getString(1);
-        Spot spot = new Spot(rows.getString(2), rows.getString(3), rows.getInt(4), rows.getInt(5), rows.getInt(6));
-        Ware ware = new Ware(rows.getString(10), rows.getString(11), rows.getString(12));
-        Prices prices = new Prices(Money.of(rows.getLong(13)), Money.of(rows.getLong(14)), rows.getInt(15));
-        return new Shop(UUID.fromString(id), UUID.fromString(rows.getString(7)), rows.getString(8),
-                rows.getString(9), spot, ware, prices, Status.parse(rows.getString(16)),
-                staff.getOrDefault(id, Map.of()), rows.getLong(17), rows.getLong(18), rows.getInt(19),
-                rows.getInt(20), rows.getInt(21) != 0);
+        Spot spot = new Spot(rows.getString(3), rows.getString(4), rows.getInt(5), rows.getInt(6), rows.getInt(7));
+        Ware ware = new Ware(rows.getString(11), rows.getString(12), rows.getString(13));
+        Prices prices = new Prices(Money.of(rows.getLong(14)), Money.of(rows.getLong(15)), rows.getInt(16));
+        return new Shop(UUID.fromString(id), UUID.fromString(rows.getString(2)), UUID.fromString(rows.getString(8)),
+                rows.getString(9), rows.getString(10), spot, ware, prices, Status.parse(rows.getString(17)),
+                staff.getOrDefault(id, Map.of()), rows.getLong(18), rows.getLong(19), rows.getInt(20),
+                rows.getInt(21), rows.getInt(22) != 0);
     }
 }

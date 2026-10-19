@@ -34,6 +34,7 @@ class StoresTest {
     private static final UUID ALICE = UUID.nameUUIDFromBytes("alice".getBytes());
     private static final UUID BOB = UUID.nameUUIDFromBytes("bob".getBytes());
     private static final UUID CAROL = UUID.nameUUIDFromBytes("carol".getBytes());
+    private static final UUID STORE = UUID.nameUUIDFromBytes("alices-store".getBytes());
 
     @TempDir
     Path folder;
@@ -46,7 +47,7 @@ class StoresTest {
     }
 
     private static Shop shop(String name, String server, int x) {
-        return Shop.open(UUID.nameUUIDFromBytes(name.getBytes()), ALICE, "Alice", name,
+        return Shop.open(UUID.nameUUIDFromBytes(name.getBytes()), STORE, ALICE, "Alice", name,
                 new Spot(server, "world", x, 64, 0), new Ware("DIAMOND", "encoded-diamond", "Diamond"),
                 new Prices(Money.of(1000), Money.of(400), 4), 1_000, 0);
     }
@@ -164,6 +165,36 @@ class StoresTest {
         assertThat(reviews.ratings()).containsEntry(shop, rating);
         assertThat(reviews.remove(shop, BOB)).isTrue();
         assertThat(reviews.rating(shop).count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("stores come back as saved; their statues are listed per store and forgotten one by one")
+    void storesAndStatues() {
+        StoreStore stores = new StoreStore(database);
+        de.raindancer.modules.shops.model.Store smithy =
+                new de.raindancer.modules.shops.model.Store(STORE, ALICE, "Alice", "Smithy", "Sharp things", 5);
+        de.raindancer.modules.shops.model.Store farm =
+                new de.raindancer.modules.shops.model.Store(UUID.randomUUID(), ALICE, "Alice", "Farm", "", 6);
+        stores.save(smithy);
+        stores.save(farm);
+        stores.save(smithy.withMotto("Sharper things"));
+        assertThat(stores.all()).extracting(de.raindancer.modules.shops.model.Store::motto)
+                .containsExactly("Sharper things", "");
+
+        de.raindancer.modules.shops.model.Statue statue = new de.raindancer.modules.shops.model.Statue(
+                UUID.randomUUID(), STORE, new Spot("survival", "world", 3, 70, -2), 90f, 7);
+        stores.place(statue);
+        stores.place(new de.raindancer.modules.shops.model.Statue(UUID.randomUUID(), farm.id(),
+                new Spot("survival", "world", 9, 70, 9), 0f, 8));
+        assertThat(stores.statues()).hasSize(2);
+        assertThat(stores.statues().stream().filter(each -> each.store().equals(STORE)).toList())
+                .containsExactly(statue);
+        assertThat(stores.unplace(statue.entity())).isTrue();
+        assertThat(stores.statues()).hasSize(1);
+
+        assertThat(stores.delete(farm.id())).isTrue();
+        assertThat(stores.all()).extracting(de.raindancer.modules.shops.model.Store::name).containsExactly("Smithy");
+        assertThat(stores.statues()).as("a store's statues go with it").isEmpty();
     }
 
     @Test

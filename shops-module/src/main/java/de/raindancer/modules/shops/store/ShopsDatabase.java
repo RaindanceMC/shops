@@ -11,7 +11,7 @@ public final class ShopsDatabase {
     public static final String NAME = "shops";
 
     public static final Schema SCHEMA = Schema.of(
-            "CREATE TABLE shop (id TEXT PRIMARY KEY, server TEXT NOT NULL, world TEXT NOT NULL, "
+            "CREATE TABLE shop (id TEXT PRIMARY KEY, store TEXT NOT NULL, server TEXT NOT NULL, world TEXT NOT NULL, "
                     + "x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, spot TEXT NOT NULL UNIQUE, "
                     + "owner TEXT NOT NULL, owner_name TEXT NOT NULL, name TEXT NOT NULL, "
                     + "material TEXT NOT NULL, ware TEXT NOT NULL, label TEXT NOT NULL, "
@@ -37,7 +37,15 @@ public final class ShopsDatabase {
             "CREATE TABLE notice (id INTEGER PRIMARY KEY AUTOINCREMENT, owner TEXT NOT NULL, at BIGINT NOT NULL, "
                     + "kind TEXT NOT NULL, shop TEXT NOT NULL, shop_name TEXT NOT NULL, amount BIGINT NOT NULL, "
                     + "items INTEGER NOT NULL, who TEXT NOT NULL)",
-            "CREATE INDEX notice_owner ON notice (owner, id)");
+            "CREATE INDEX notice_owner ON notice (owner, id)",
+            "CREATE TABLE store (id TEXT PRIMARY KEY, owner TEXT NOT NULL, owner_name TEXT NOT NULL, "
+                    + "name TEXT NOT NULL, motto TEXT NOT NULL, created BIGINT NOT NULL)",
+            "CREATE INDEX store_owner ON store (owner)",
+            "CREATE INDEX shop_store ON shop (store)",
+            "CREATE TABLE statue (entity TEXT PRIMARY KEY, store TEXT NOT NULL, server TEXT NOT NULL, "
+                    + "world TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, "
+                    + "yaw DOUBLE NOT NULL, placed BIGINT NOT NULL)",
+            "CREATE INDEX statue_store ON statue (store)");
 
     private ShopsDatabase() {
     }

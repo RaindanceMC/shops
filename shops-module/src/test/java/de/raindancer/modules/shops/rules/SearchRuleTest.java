@@ -24,7 +24,7 @@ class SearchRuleTest {
 
     private static Listing listing(String name, String material, long buy, long sell, int bundle, int stock,
                                    Rating rating, long sales, long created) {
-        Shop shop = new Shop(UUID.nameUUIDFromBytes(name.getBytes()), UUID.randomUUID(), "owner", name,
+        Shop shop = new Shop(UUID.nameUUIDFromBytes(name.getBytes()), UUID.randomUUID(), UUID.randomUUID(), "owner", name,
                 new Spot("s", "world", 0, 64, 0), new Ware(material, "", null),
                 new Prices(Money.of(buy), Money.of(sell), bundle), Status.OPEN, java.util.Map.of(), created, 0, 0,
                 0, true);
