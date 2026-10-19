@@ -32,13 +32,23 @@ public final class ShopUseListener implements IShopsListener {
         // Remembers nobody.
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    /**
+     * At LOWEST and cancelled here: Core's land protection, at LOW, refuses visitors clicking containers and signs in
+     * a claim and would tell a customer they may not — of a shop they are welcome at. It skips cancelled events.
+     */
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onClick(PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getHand() != EquipmentSlot.HAND) {
+        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) {
             return;
         }
         Block block = event.getClickedBlock();
         if (block == null) {
+            return;
+        }
+        if (event.getHand() != EquipmentSlot.HAND) {
+            // The off hand's half of the same click: quiet for a customer, so Core does not refuse it out loud.
+            services.locator().shopAt(block).filter(shop -> !shop.mayStock(event.getPlayer().getUniqueId()))
+                    .ifPresent(shop -> event.setCancelled(true));
             return;
         }
         if (block.getState(false) instanceof org.bukkit.block.Container) {

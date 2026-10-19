@@ -33,17 +33,19 @@ public final class StatueListener implements IShopsListener {
         // Remembers nobody.
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    /** At LOWEST, cancelled here, so Core's land protection does not refuse a statue in a claim first. */
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onClick(PlayerInteractEntityEvent event) {
-        if (event.getHand() != EquipmentSlot.HAND) {
-            return;
-        }
         Entity clicked = event.getRightClicked();
         Optional<UUID> storeId = services.statues().storeOf(clicked);
         if (storeId.isEmpty()) {
             return;
         }
+        // Both hands cancelled — Core checks both — but only the main hand opens the store.
         event.setCancelled(true);
+        if (event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
         Player player = event.getPlayer();
         Optional<Store> store = services.book().store(storeId.get());
         if (store.isEmpty()) {
@@ -60,7 +62,7 @@ public final class StatueListener implements IShopsListener {
         services.screens().store(player, store.get(), clicked.getLocation());
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onClickAt(PlayerInteractAtEntityEvent event) {
         if (services.statues().storeOf(event.getRightClicked()).isPresent()) {
             event.setCancelled(true);

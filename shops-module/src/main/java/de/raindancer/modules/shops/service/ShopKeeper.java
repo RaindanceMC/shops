@@ -60,6 +60,7 @@ public final class ShopKeeper implements IShopsService {
     private final ShopNameRule names = new ShopNameRule();
     private final ShopLimitRule limits = new ShopLimitRule();
     private final RentRule rent = new RentRule();
+    private final de.raindancer.modules.shops.rules.WareRule wareRule = new de.raindancer.modules.shops.rules.WareRule();
     private volatile ShopsSettings settings;
 
     public ShopKeeper(ShopBook book, ShopLocator locator, Wares wares, Land land, Audit audit, NoticeService notices,
@@ -128,8 +129,9 @@ public final class ShopKeeper implements IShopsService {
         if (where.isPresent()) {
             return Answer.refused(where.get());
         }
-        if (item == null || item.getType().isAir()) {
-            return Answer.refused(Refusal.NOTHING_TO_SELL);
+        Optional<Refusal> notWare = notAWare(item);
+        if (notWare.isPresent()) {
+            return Answer.refused(notWare.get());
         }
         Ware ware = wares.of(item);
         String called = name == null || name.isBlank() ? ware.label() : name.strip();
@@ -227,8 +229,9 @@ public final class ShopKeeper implements IShopsService {
 
     /** A new thing to sell: whatever is in the owner's hand now. The stock of the old ware stays in the container. */
     public Answer<Shop> reware(Player by, Shop shop, ItemStack item) {
-        if (item == null || item.getType().isAir()) {
-            return Answer.refused(Refusal.NOTHING_TO_SELL);
+        Optional<Refusal> notWare = notAWare(item);
+        if (notWare.isPresent()) {
+            return Answer.refused(notWare.get());
         }
         Ware ware = wares.of(item);
         return manage(by, shop, edited -> edited.withWare(ware));
@@ -410,6 +413,12 @@ public final class ShopKeeper implements IShopsService {
     }
 
     // ------------------------------------------------------------------ the rest
+
+    private Optional<Refusal> notAWare(ItemStack item) {
+        boolean nothing = item == null || item.getType().isAir();
+        return wareRule.check(nothing, !nothing && de.raindancer.core.content.items.BoundItems.isBound(item),
+                !nothing && de.raindancer.core.content.items.InsuredItems.isInsured(item));
+    }
 
     public boolean isAdmin(Player player) {
         return player.hasPermission(PermissionNodes.ADMIN);

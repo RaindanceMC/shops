@@ -62,6 +62,7 @@ shops:
     not-a-customer: "<red>Only somebody who traded there lately may review it."
     review-too-long: "<red>That review is too long, or has odd marks in it."
     bad-stars: "<red>One to five stars. Not six. Not zero."
+    not-for-sale: "<red>That item is bound to somebody or insured — it cannot be a shop's ware."
     too-many-stores: "<red>You have as many stores as you may."
     last-store: "<red>That is your last store, and it still has shops. Close or move them first."
     too-many-statues: "<red>That store has as many statues as it may. Vanity has limits."

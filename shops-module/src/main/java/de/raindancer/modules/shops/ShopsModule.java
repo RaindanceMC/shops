@@ -71,7 +71,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.1.2")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.1.3")
             .describedAs("Players' own shops: chests and barrels that sell and buy, stores with statues of their "
                     + "owners, a server-wide bazaar, reviews and statements")
             .by("Raindancer118");
