@@ -36,3 +36,6 @@ paper-global.yml
 
 # e2e: other plugins fetched from the registry.
 jars/
+
+# Working reference, never committed.
+Project.md
