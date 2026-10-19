@@ -1,6 +1,6 @@
 # RaindanceMC/shops
 
-- **`shops-module`** — Rain's Flexible Modules — Shops: players' own shops — a chest or barrel that sells and buys one exact item, grouped into stores, fronted by statues of their owners, found through `/bazaar`.
+- **`shops-module`** — Rain's Flexible Modules — Shops: players' own shops — a shopkeeper with its owner's skin sells the shop's offers from the stock chests linked to each, buying too if the owner likes; `/bazaar` finds every offer and trades from afar.
 - **`shops-standalone`** — Rain's Shops: the shops module and the standard wrapper, shaded together.
 
 Part of [RaindanceMC](https://github.com/RaindanceMC); built on [RainsCore](https://github.com/RaindanceMC/RainsCore) and the shared parent in [framework](https://github.com/RaindanceMC/framework).
@@ -15,7 +15,7 @@ Needs Java 25 and read access to `packages.tstieh.de` (server ids `packages-rele
 
 ## Plugins
 
-- `shops-standalone/target/RainsShops-0.1.3.jar` — also published as `de.raindancer.modules:shops-standalone:0.1.3`
+- `shops-standalone/target/RainsShops-0.2.0.jar` — also published as `de.raindancer.modules:shops-standalone:0.2.0`
 
 ## Versions
 

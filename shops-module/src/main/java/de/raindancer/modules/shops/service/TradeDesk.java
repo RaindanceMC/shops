@@ -55,11 +55,20 @@ public final class TradeDesk implements IShopsService {
     private final ShopLocks locks;
     private final Consumer<Done> done;
     private final LongSupplier clock;
+    private final java.util.function.BiPredicate<Shop, UUID> staff;
     private final TradeRule rule = new TradeRule();
     private final PriceRule prices = new PriceRule();
     private volatile ShopsSettings settings;
 
+    /** For a desk where only the owner works at an offer — the tests'. */
     public TradeDesk(Till till, ShopLocks locks, ShopsSettings settings, Consumer<Done> done, LongSupplier clock) {
+        this(till, locks, settings, done, clock, Shop::isOwner);
+    }
+
+    /** @param staff whether somebody works at the offer's shop, and so may not trade at it */
+    public TradeDesk(Till till, ShopLocks locks, ShopsSettings settings, Consumer<Done> done, LongSupplier clock,
+                     java.util.function.BiPredicate<Shop, UUID> staff) {
+        this.staff = staff;
         this.till = till;
         this.locks = locks;
         this.settings = settings;
@@ -167,7 +176,7 @@ public final class TradeDesk implements IShopsService {
         boolean available = till.available();
         Money customerBalance = available ? till.balance(customer) : Money.ZERO;
         Money ownerBalance = available && side == TradeSide.SELL ? till.balance(shop.owner()) : Money.ZERO;
-        return new TradeRule.Ask(shop.status(), shop.mayStock(customer), side, shop.prices(), bundles,
+        return new TradeRule.Ask(shop.status(), staff.test(shop, customer), side, shop.prices(), bundles,
                 shopShelf.count(), shopShelf.room(), shop.buyLimit(), customerShelf.count(), customerShelf.room(),
                 customerBalance, ownerBalance, settings.partialTrades(), available);
     }

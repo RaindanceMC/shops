@@ -53,16 +53,17 @@ class StoresTest {
     }
 
     @Test
-    @DisplayName("a shop comes back exactly as saved, staff and all; saving again replaces it")
+    @DisplayName("an offer comes back exactly as saved, chests and all; saving again replaces it")
     void shops() {
         ShopStore store = new ShopStore(database);
-        Shop saved = shop("Depot", "survival", 1).withStaff(BOB, Role.MANAGER).withStaff(CAROL, Role.CLERK)
-                .withBuyLimit(256).withLowStockAt(8).withStatus(Status.PAUSED).withDisplay(false)
+        Shop saved = shop("Depot", "survival", 1).linked(new Spot("survival", "world", 3, 64, 0))
+                .linked(new Spot("survival", "world", 4, 64, 0))
+                .withBuyLimit(256).withLowStockAt(8).withStatus(Status.PAUSED)
                 .withRentPaidTo(99_000);
         assertThat(store.save(saved)).isTrue();
         assertThat(store.all()).containsExactly(saved);
 
-        Shop renamed = saved.withName("Diamond Depot").withStaff(CAROL, null);
+        Shop renamed = saved.withName("Diamond Depot").unlinked(new Spot("survival", "world", 3, 64, 0));
         store.save(renamed);
         assertThat(store.all()).containsExactly(renamed);
         assertThat(store.byId(saved.id())).contains(renamed);
@@ -79,11 +80,11 @@ class StoresTest {
     }
 
     @Test
-    @DisplayName("removing a shop takes its staff rows with it; its trades stay for the statement")
+    @DisplayName("removing an offer takes its chest rows with it; its trades stay for the statement")
     void remove() {
         ShopStore store = new ShopStore(database);
         TradeStore trades = new TradeStore(database);
-        Shop depot = shop("Depot", "survival", 1).withStaff(BOB, Role.CLERK);
+        Shop depot = shop("Depot", "survival", 1).linked(new Spot("survival", "world", 3, 64, 0));
         store.save(depot);
         trades.add(trade(depot, BOB, TradeSide.BUY, 4, 1000, 50, 2_000));
         assertThat(store.delete(depot.id())).isTrue();
@@ -168,33 +169,76 @@ class StoresTest {
     }
 
     @Test
-    @DisplayName("stores come back as saved; their statues are listed per store and forgotten one by one")
-    void storesAndStatues() {
+    @DisplayName("shops come back as saved, staff and all; each has one shopkeeper, and a new one replaces the old")
+    void shopsAndKeepers() {
         StoreStore stores = new StoreStore(database);
-        de.raindancer.modules.shops.model.Store smithy =
-                new de.raindancer.modules.shops.model.Store(STORE, ALICE, "Alice", "Smithy", "Sharp things", 5);
-        de.raindancer.modules.shops.model.Store farm =
-                new de.raindancer.modules.shops.model.Store(UUID.randomUUID(), ALICE, "Alice", "Farm", "", 6);
+        de.raindancer.modules.shops.model.Store smithy = new de.raindancer.modules.shops.model.Store(STORE, ALICE,
+                "Alice", "Smithy", "Sharp things", 5, java.util.Map.of()).withStaff(BOB, Role.MANAGER)
+                .withStaff(CAROL, Role.CLERK);
+        de.raindancer.modules.shops.model.Store farm = new de.raindancer.modules.shops.model.Store(UUID.randomUUID(),
+                ALICE, "Alice", "Farm", "", 6, java.util.Map.of());
         stores.save(smithy);
         stores.save(farm);
-        stores.save(smithy.withMotto("Sharper things"));
+        stores.save(smithy.withMotto("Sharper things").withStaff(CAROL, null));
         assertThat(stores.all()).extracting(de.raindancer.modules.shops.model.Store::motto)
                 .containsExactly("Sharper things", "");
+        assertThat(stores.all().get(0).staff()).containsOnlyKeys(BOB);
 
-        de.raindancer.modules.shops.model.Statue statue = new de.raindancer.modules.shops.model.Statue(
+        de.raindancer.modules.shops.model.Statue keeper = new de.raindancer.modules.shops.model.Statue(
                 UUID.randomUUID(), STORE, new Spot("survival", "world", 3, 70, -2), 90f, 7);
-        stores.place(statue);
+        stores.place(keeper);
         stores.place(new de.raindancer.modules.shops.model.Statue(UUID.randomUUID(), farm.id(),
                 new Spot("survival", "world", 9, 70, 9), 0f, 8));
+        de.raindancer.modules.shops.model.Statue moved = new de.raindancer.modules.shops.model.Statue(
+                UUID.randomUUID(), STORE, new Spot("survival", "world", 5, 70, -2), 0f, 9);
+        stores.place(moved);
         assertThat(stores.statues()).hasSize(2);
         assertThat(stores.statues().stream().filter(each -> each.store().equals(STORE)).toList())
-                .containsExactly(statue);
-        assertThat(stores.unplace(statue.entity())).isTrue();
-        assertThat(stores.statues()).hasSize(1);
+                .containsExactly(moved);
 
         assertThat(stores.delete(farm.id())).isTrue();
         assertThat(stores.all()).extracting(de.raindancer.modules.shops.model.Store::name).containsExactly("Smithy");
-        assertThat(stores.statues()).as("a store's statues go with it").isEmpty();
+        assertThat(stores.statues()).as("a shop's keeper goes with it").containsExactly(moved);
+    }
+
+    @Test
+    @DisplayName("the shops from before the rework are read once, to be closed: owner, name and rent paid ahead")
+    void oldShops() throws Exception {
+        database.write(connection -> {
+            try (var row = connection.prepareStatement("INSERT INTO shop (id, store, server, world, x, y, z, spot, "
+                    + "owner, owner_name, name, material, ware, label, buy, sell, bundle, status, created, rent_paid_to) "
+                    + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+                Object[] values = {UUID.randomUUID().toString(), STORE.toString(), "survival", "world", 1, 64, 0,
+                        "survival|world|1|64|0", ALICE.toString(), "Alice", "Old Depot", "DIAMOND", "", "Diamond",
+                        100L, 0L, 1, "OPEN", 1L, 50_000L};
+                for (int at = 0; at < values.length; at++) {
+                    row.setObject(at + 1, values[at]);
+                }
+                row.executeUpdate();
+            }
+        });
+        database.write(connection -> {
+            try (var row = connection.prepareStatement("INSERT INTO statue (entity, store, server, world, x, y, z, yaw, "
+                    + "placed) VALUES (?,?,?,?,?,?,?,?,?)")) {
+                Object[] values = {UUID.randomUUID().toString(), STORE.toString(), "survival", "world", 2, 64, 0,
+                        0.0, 1L};
+                for (int at = 0; at < values.length; at++) {
+                    row.setObject(at + 1, values[at]);
+                }
+                row.executeUpdate();
+            }
+        });
+        OldShops old = new OldShops(database);
+        assertThat(old.open()).singleElement().satisfies(shop -> {
+            assertThat(shop.owner()).isEqualTo(ALICE);
+            assertThat(shop.name()).isEqualTo("Old Depot");
+            assertThat(shop.rentPaidTo()).isEqualTo(50_000L);
+            assertThat(shop.server()).isEqualTo("survival");
+        });
+        assertThat(old.statueStores()).containsExactly(STORE);
+        assertThat(old.markClosed("survival")).isEqualTo(1);
+        assertThat(old.open()).as("closed once, never again").isEmpty();
+        assertThat(new ShopStore(database).all()).as("the new offers are elsewhere").isEmpty();
     }
 
     @Test

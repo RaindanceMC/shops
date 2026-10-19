@@ -1,125 +1,116 @@
 package de.raindancer.modules.shops.model;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * A player's shop: one container, one kind of item, a price each way.
+ * One offer of a player's shop (players call it an offer; the shop is the {@link Store}): one kind of item, a price
+ * each way, and the chests its stock is kept in.
  *
- * <p>Immutable. A change is a new shop with the same id; the index swaps it in whole, so a trade that read the shop
+ * <p>Immutable. A change is a new offer with the same id; the index swaps it in whole, so a trade that read the offer
  * a moment ago is never looking at half an edit.
  *
- * @param store        the owner's store this shop is part of
- * @param staff        who else may work here, and as what
- * @param rentPaidTo   epoch millis the rent is paid until; 0 when this shop pays no rent
- * @param buyLimit     the most items the shop holds before it stops buying more; 0 is "as many as fit"
- * @param lowStockAt   items left at which the owner is told the shop is running out; 0 never
- * @param display      whether the item and the price float above the shop
+ * @param store      the shop this offer is part of
+ * @param spot       where it is sold: the block its shop's shopkeeper stands on — travel goes there
+ * @param chests     the linked stock chests, pooled; empty until the owner links one
+ * @param rentPaidTo epoch millis the rent is paid until; 0 when this offer pays no rent
+ * @param buyLimit   the most items the chests hold before the offer stops buying more; 0 is "as many as fit"
+ * @param lowStockAt items left at which the owner is told the offer is running out; 0 never
  */
-public record Shop(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, Ware ware, Prices prices,
-                   Status status, Map<UUID, Role> staff, long createdAt, long rentPaidTo, int buyLimit,
-                   int lowStockAt, boolean display) {
+public record Shop(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, List<Spot> chests,
+                   Ware ware, Prices prices, Status status, long createdAt, long rentPaidTo, int buyLimit,
+                   int lowStockAt) {
 
     public Shop {
         ownerName = ownerName == null ? "" : ownerName;
         name = name == null || name.isBlank() ? ware.label() : name.strip();
+        chests = chests == null ? List.of() : List.copyOf(chests);
         status = status == null ? Status.OPEN : status;
-        staff = staff == null ? Map.of() : Map.copyOf(staff);
         buyLimit = Math.max(0, buyLimit);
         lowStockAt = Math.max(0, lowStockAt);
     }
 
-    public static Shop open(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, Ware ware, Prices prices,
-                            long now, long rentPaidTo) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, Status.OPEN, Map.of(), now,
-                rentPaidTo, 0, 0, true);
+    public static Shop open(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, Ware ware,
+                            Prices prices, long now, long rentPaidTo) {
+        return new Shop(id, store, owner, ownerName, name, spot, List.of(), ware, prices, Status.OPEN, now,
+                rentPaidTo, 0, 0);
     }
 
     public boolean isOwner(UUID who) {
         return owner.equals(who);
     }
 
-    public Optional<Role> roleOf(UUID who) {
-        return Optional.ofNullable(staff.get(who));
-    }
-
-    /** Owner, clerk or manager: somebody who may open the container itself. */
-    public boolean mayStock(UUID who) {
-        return isOwner(who) || staff.containsKey(who);
-    }
-
-    /** Owner or manager: somebody who may change what the shop asks and whether it trades. */
-    public boolean mayManage(UUID who) {
-        return isOwner(who) || staff.get(who) == Role.MANAGER;
-    }
-
     public boolean paysRent() {
         return rentPaidTo > 0;
     }
 
+    public boolean isLinked(Spot chest) {
+        return chests.contains(chest);
+    }
+
+    public Shop linked(Spot chest) {
+        if (chests.contains(chest)) {
+            return this;
+        }
+        List<Spot> more = new ArrayList<>(chests);
+        more.add(chest);
+        return withChests(more);
+    }
+
+    public Shop unlinked(Spot chest) {
+        List<Spot> fewer = new ArrayList<>(chests);
+        fewer.remove(chest);
+        return withChests(fewer);
+    }
+
+    public Shop withChests(List<Spot> changed) {
+        return new Shop(id, store, owner, ownerName, name, spot, changed, ware, prices, status, createdAt, rentPaidTo,
+                buyLimit, lowStockAt);
+    }
+
+    public Shop withSpot(Spot changed) {
+        return new Shop(id, store, owner, ownerName, name, changed, chests, ware, prices, status, createdAt,
+                rentPaidTo, buyLimit, lowStockAt);
+    }
+
     public Shop withPrices(Prices changed) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, changed, status, staff, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, display);
+        return new Shop(id, store, owner, ownerName, name, spot, chests, ware, changed, status, createdAt, rentPaidTo,
+                buyLimit, lowStockAt);
     }
 
     public Shop withStatus(Status changed) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, changed, staff, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, display);
+        return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, changed, createdAt, rentPaidTo,
+                buyLimit, lowStockAt);
     }
 
     public Shop withName(String changed) {
-        return new Shop(id, store, owner, ownerName, changed, spot, ware, prices, status, staff, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, display);
+        return new Shop(id, store, owner, ownerName, changed, spot, chests, ware, prices, status, createdAt,
+                rentPaidTo, buyLimit, lowStockAt);
     }
 
     public Shop withWare(Ware changed) {
-        return new Shop(id, store, owner, ownerName, name, spot, changed, prices, status, staff, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, display);
+        return new Shop(id, store, owner, ownerName, name, spot, chests, changed, prices, status, createdAt,
+                rentPaidTo, buyLimit, lowStockAt);
     }
 
     public Shop withRentPaidTo(long paidTo) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, status, staff, createdAt, paidTo,
-                buyLimit, lowStockAt, display);
+        return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, paidTo,
+                buyLimit, lowStockAt);
     }
 
     public Shop withBuyLimit(int limit) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, status, staff, createdAt, rentPaidTo,
-                limit, lowStockAt, display);
+        return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
+                limit, lowStockAt);
     }
 
     public Shop withLowStockAt(int items) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, status, staff, createdAt, rentPaidTo,
-                buyLimit, items, display);
+        return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
+                buyLimit, items);
     }
 
-    public Shop withDisplay(boolean shown) {
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, status, staff, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, shown);
-    }
-
-    /** A new owner keeps the shop, its prices and its history; the old staff are theirs to keep or not. */
-    public Shop withOwner(UUID newOwner, String newOwnerName) {
-        Map<UUID, Role> kept = new LinkedHashMap<>(staff);
-        kept.remove(newOwner);
-        return new Shop(id, store, newOwner, newOwnerName, name, spot, ware, prices, status, kept, createdAt,
-                rentPaidTo, buyLimit, lowStockAt, display);
-    }
-
-    public Shop withStore(UUID changed) {
-        return new Shop(id, changed, owner, ownerName, name, spot, ware, prices, status, staff, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, display);
-    }
-
-    public Shop withStaff(UUID who, Role role) {
-        Map<UUID, Role> changed = new LinkedHashMap<>(staff);
-        if (role == null) {
-            changed.remove(who);
-        } else if (!isOwner(who)) {
-            changed.put(who, role);
-        }
-        return new Shop(id, store, owner, ownerName, name, spot, ware, prices, status, changed, createdAt, rentPaidTo,
-                buyLimit, lowStockAt, display);
+    public Shop withOwnerName(String changed) {
+        return new Shop(id, store, owner, changed, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
+                buyLimit, lowStockAt);
     }
 }

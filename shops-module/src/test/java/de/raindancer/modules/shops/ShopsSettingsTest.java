@@ -48,19 +48,19 @@ class ShopsSettingsTest {
     }
 
     @Test
-    @DisplayName("the defaults: free to open, no rent, no cut, five shops, three stores, two statues each")
+    @DisplayName("the defaults: free to open, no rent, no cut, three shops of 27 offers, 12 chests within 24 blocks")
     void spelledOut() {
         assertThat(defaults.openingPrice()).isEqualTo("0");
         assertThat(defaults.rentPerWeek()).isEqualTo("0");
         assertThat(defaults.cutPercent()).isZero();
-        assertThat(defaults.shopLimit()).isEqualTo(5);
-        assertThat(defaults.storeLimit()).isEqualTo(3);
-        assertThat(defaults.statueLimit()).isEqualTo(2);
+        assertThat(defaults.shopLimit()).isEqualTo(3);
+        assertThat(defaults.offerLimit()).isEqualTo(27);
+        assertThat(defaults.chestLimit()).isEqualTo(12);
+        assertThat(defaults.reach()).isEqualTo(24);
         assertThat(defaults.containers()).contains("CHEST").contains("BARREL").doesNotContain("SHULKER");
         assertThat(defaults.partialTrades()).isTrue();
-        assertThat(defaults.signShops()).isTrue();
         assertThat(defaults.hoppersFillShops()).isTrue();
-        assertThat(defaults.statuesReachEverywhere()).isTrue();
+        assertThat(defaults.remoteTrades()).isTrue();
     }
 
     @Test
@@ -69,5 +69,7 @@ class ShopsSettingsTest {
         assertThat(defaults.withServerCutPercent(250).cutPercent()).isEqualTo(100);
         assertThat(defaults.withServerCutPercent(-3).cutPercent()).isZero();
         assertThat(defaults.withMostShops(-1).shopLimit()).isZero();
+        assertThat(defaults.withLinkReach(500).reach()).isEqualTo(64);
+        assertThat(defaults.withLinkReach(0).reach()).isEqualTo(4);
     }
 }

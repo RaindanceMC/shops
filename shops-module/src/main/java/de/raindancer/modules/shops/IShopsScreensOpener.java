@@ -9,22 +9,22 @@ import org.bukkit.entity.Player;
 /** Opening one of this module's screens without knowing which class draws it — commands are built before any. */
 public interface IShopsScreensOpener {
 
-    /** A shop's counter, for a customer. {@code via} is the statue they clicked; null at the shop itself. */
+    /** An offer's counter, for a customer. {@code via} is the shopkeeper they clicked; null from the bazaar. */
     void front(Player viewer, Shop shop, Location via);
 
-    /** A shop's back room: prices, staff, the log — for its owner, a manager or staff. */
+    /** An offer's back room: prices, chests, the log — for the shop's owner or a manager. */
     void manage(Player viewer, Shop shop);
 
-    /** A store's page: every shop in it, to trade at. */
+    /** A shop's page: every offer, to trade at. {@code via} is its shopkeeper; null from the bazaar. */
     void store(Player viewer, Store store, Location via);
 
-    /** One of the viewer's stores, to rename, put statues of and look after. */
+    /** One of the viewer's shops, to rename, staff, add offers to and look after. */
     void storeManage(Player viewer, Store store);
 
-    /** The viewer's own shops and stores. */
+    /** The viewer's own shops. */
     void mine(Player viewer);
 
-    /** Every shop there is, searched. */
+    /** Every offer there is, searched. */
     void browse(Player viewer, String query, TradeSide side);
 
     /** The viewer's earnings and spending. */

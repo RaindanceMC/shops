@@ -10,7 +10,6 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
 import org.bukkit.block.DoubleChest;
-import org.bukkit.block.data.type.WallSign;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
@@ -20,8 +19,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Which shop a block, a sign or an inventory belongs to. A double chest is one shop whichever half is clicked, and
- * a sign on a shop's container is that shop.
+ * Which offer a block or an inventory is stock of, and the stock chests' inventories. A double chest is one chest
+ * whichever half is linked or clicked.
  */
 public final class ShopLocator {
 
@@ -45,7 +44,7 @@ public final class ShopLocator {
         return world == null ? Optional.empty() : Optional.of(new Location(world, spot.x(), spot.y(), spot.z()));
     }
 
-    /** The shop this block is, or is half of, or is a sign on. */
+    /** The offer this block is a stock chest of, or half of one. */
     public Optional<Shop> shopAt(Block block) {
         for (Block part : parts(block)) {
             Optional<Shop> found = index.at(spotOf(part));
@@ -53,13 +52,22 @@ public final class ShopLocator {
                 return found;
             }
         }
-        if (block.getBlockData() instanceof WallSign sign) {
-            return shopAt(block.getRelative(sign.getFacing().getOppositeFace()));
+        return Optional.empty();
+    }
+
+    /** The offer the other half of this double chest is stock of — the half itself not looked at. */
+    public Optional<Shop> partnerShop(Block block) {
+        List<Block> parts = parts(block);
+        for (Block part : parts.subList(1, parts.size())) {
+            Optional<Shop> found = index.at(spotOf(part));
+            if (found.isPresent()) {
+                return found;
+            }
         }
         return Optional.empty();
     }
 
-    /** Whether this block is a shop's container or half of one — what an explosion or a piston must leave alone. */
+    /** Whether this block is a stock chest or half of one — what an explosion or a piston must leave alone. */
     public boolean isShopBlock(Block block) {
         return parts(block).stream().anyMatch(part -> index.at(spotOf(part)).isPresent());
     }
@@ -84,10 +92,10 @@ public final class ShopLocator {
         return Optional.empty();
     }
 
-    /** The shop's whole inventory — both halves of a double chest. On the block's own region thread. */
-    public Optional<Inventory> inventory(Shop shop) {
-        return location(shop.spot())
-                .filter(at -> at.isChunkLoaded())
+    /** A stock chest's whole inventory — both halves of a double chest — if its chunk is loaded. */
+    public Optional<Inventory> inventory(Spot chest) {
+        return location(chest)
+                .filter(Location::isChunkLoaded)
                 .map(Location::getBlock)
                 .map(block -> block.getState(false))
                 .filter(Container.class::isInstance)

@@ -21,8 +21,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The bazaar: every shop, searched by what it trades, cheapest first. Click to go there; right click for the shop's
- * store — trading at it from here when it is within reach.
+ * The bazaar: every offer in every shop, searched by what it trades, cheapest first. Click to trade from here (when
+ * remote trades are on and the shop is on this server), shift click to go to its shopkeeper, right click for the
+ * whole shop.
  */
 public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements IShopsScreen {
 
@@ -60,7 +61,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     @Override
     protected ItemStack emptyIcon() {
         return Icons.of(Material.COBWEB, query.isEmpty() ? "<gray>No shops yet" : "<gray>Nothing found",
-                query.isEmpty() ? "<gray>Be the first: /bazaar create" : "<gray>Nobody " + (side == TradeSide.BUY
+                query.isEmpty() ? "<gray>Be the first: /bazaar create <name>" : "<gray>Nobody " + (side == TradeSide.BUY
                         ? "sells" : "buys") + " " + Lines.plain(query) + " right now.",
                 "<yellow>Click to search for something else.");
     }
@@ -74,12 +75,16 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     protected ItemStack icon(Listing listing) {
         List<String> lore = new ArrayList<>(Lines.listing(listing));
         lore.add("");
+        boolean remote = listing.here() && services.trades().remote();
+        if (remote) {
+            lore.add("<yellow>Click to trade from here");
+        }
         if (services.travel().enabled()) {
             String fee = Fees.format(Fees.amount(services.config().travelPrice()));
-            lore.add("<yellow>Click to go there" + (Fees.amount(services.config().travelPrice()).isPositive()
-                    ? " <gray>(" + fee + ")" : ""));
+            lore.add("<yellow>" + (remote ? "Shift click" : "Click") + " to go to the shopkeeper"
+                    + (Fees.amount(services.config().travelPrice()).isPositive() ? " <gray>(" + fee + ")" : ""));
         }
-        lore.add("<yellow>Right click for its store");
+        lore.add("<yellow>Right click for the whole shop");
         return Lines.ware(services, listing.shop(), "<white>" + Lines.plain(listing.shop().ware().label()), lore);
     }
 
@@ -91,6 +96,10 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
                     () -> services.refuse(viewer, Refusal.GONE));
             return;
         }
+        if (!event.isShiftClick() && listing.here() && services.trades().remote()) {
+            new ShopFrontMenu(services, viewer, this, listing.shop(), null).open();
+            return;
+        }
         viewer.closeInventory();
         Optional<Refusal> refused = services.travel().go(viewer, listing.shop().spot(), listing.shop().name());
         refused.ifPresent(why -> services.refuse(viewer, why));
@@ -100,7 +109,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     protected void decorate() {
         super.decorate();
         toolbar(1, Icons.of(side == TradeSide.BUY ? Material.EMERALD : Material.GOLD_NUGGET,
-                side == TradeSide.BUY ? "<white>Shops that sell" : "<white>Shops that buy",
+                side == TradeSide.BUY ? "<white>Offers that sell" : "<white>Offers that buy",
                 "<yellow>Click to see the " + (side == TradeSide.BUY ? "ones that buy" : "ones that sell")), click -> {
             side = side == TradeSide.BUY ? TradeSide.SELL : TradeSide.BUY;
             refresh();
@@ -114,12 +123,12 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
                         + Lines.plain(query), "<yellow>Click to type what you look for",
                 "<gray>A dash shows everything."), click -> askQuery());
         toolbar(5, Icons.of(withoutStock ? Material.ENDER_EYE : Material.ENDER_PEARL,
-                withoutStock ? "<white>Showing sold out shops too" : "<white>Showing shops that can trade",
+                withoutStock ? "<white>Showing sold out offers too" : "<white>Showing offers that can trade",
                 "<yellow>Click to switch"), click -> {
             withoutStock = !withoutStock;
             refresh();
         });
-        toolbar(7, Icons.of(Material.CHEST, "<white>Your shops", "<gray>And your stores."),
+        toolbar(7, Icons.of(Material.CHEST, "<white>Your shops", "<gray>Your shopkeepers and their offers."),
                 click -> services.screens().mine(viewer));
     }
 
@@ -135,6 +144,6 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
 
     @Override
     public String describe() {
-        return "every shop, searched";
+        return "every offer, searched";
     }
 }

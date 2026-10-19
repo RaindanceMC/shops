@@ -7,7 +7,7 @@ import de.raindancer.core.ui.menu.PaginatedMenu;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Role;
-import de.raindancer.modules.shops.model.Shop;
+import de.raindancer.modules.shops.model.Store;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
@@ -24,16 +24,16 @@ import java.util.UUID;
 public final class ShopStaffMenu extends PaginatedMenu<Map.Entry<UUID, Role>> implements IShopsScreen {
 
     private final ShopsServices services;
-    private final Shop asked;
+    private final Store asked;
 
-    public ShopStaffMenu(ShopsServices services, Player viewer, Menu parent, Shop shop) {
+    public ShopStaffMenu(ShopsServices services, Player viewer, Menu parent, Store store) {
         super(viewer, services.brand(), parent);
         this.services = services;
-        this.asked = shop;
+        this.asked = store;
     }
 
-    private Shop shop() {
-        return services.book().index().byId(asked.id()).orElse(asked);
+    private Store shop() {
+        return services.book().store(asked.id()).orElse(asked);
     }
 
     @Override
@@ -73,7 +73,7 @@ public final class ShopStaffMenu extends PaginatedMenu<Map.Entry<UUID, Role>> im
 
     @Override
     protected void onClick(Map.Entry<UUID, Role> member, InventoryClickEvent event) {
-        Answer<Shop> done = services.keeper().trust(viewer, shop(), member.getKey(),
+        Answer<Store> done = services.keeper().trust(viewer, shop(), member.getKey(),
                 event.isShiftClick() ? null : member.getValue().next());
         if (!done.ok()) {
             services.refuse(viewer, done.refusal());
@@ -87,14 +87,14 @@ public final class ShopStaffMenu extends PaginatedMenu<Map.Entry<UUID, Role>> im
     protected void decorate() {
         super.decorate();
         toolbar(4, Icons.of(Material.EMERALD, "<white>Add somebody",
-                "<gray>They start as a clerk: they fill the stock."), click -> add());
+                "<gray>They start as a clerk: they fill the stock chests."), click -> add());
     }
 
     private void add() {
         List<UUID> skip = new ArrayList<>(shop().staff().keySet());
         skip.add(shop().owner());
         new PlayerChooser(viewer, services.brand(), this, "Who helps here?", skip, chosen -> {
-            Answer<Shop> done = services.keeper().trust(viewer, shop(), chosen.id(), Role.CLERK);
+            Answer<Store> done = services.keeper().trust(viewer, shop(), chosen.id(), Role.CLERK);
             if (done.ok()) {
                 services.messages().send(viewer, "shops.trusted", "player", chosen.name(), "shop", shop().name());
             } else {

@@ -27,17 +27,23 @@ class ShopIndexTest {
 
     private static Shop shop(int x) {
         return Shop.open(UUID.nameUUIDFromBytes(("shop" + x).getBytes()), ALICE, ALICE, "Alice", "Shop " + x,
-                new Spot("s", "world", x, 64, 0), new Ware("DIAMOND", "", null),
-                Prices.selling(Money.of(100), 1), 0, 0);
+                new Spot("s", "world", 0, 70, 0), new Ware("DIAMOND", "", null),
+                Prices.selling(Money.of(100), 1), 0, 0).linked(chest(x));
+    }
+
+    private static Spot chest(int x) {
+        return new Spot("s", "world", x, 64, 0);
     }
 
     @Test
-    @DisplayName("found by id, by block and by owner; replacing keeps one entry; removing forgets the block")
+    @DisplayName("found by id, by any of its chests and by owner; replacing keeps one entry; removing forgets the chests")
     void lookups() {
         ShopIndex index = new ShopIndex();
-        Shop one = shop(1);
+        Shop one = shop(1).linked(chest(2));
         index.put(one);
-        assertThat(index.at(one.spot())).contains(one);
+        assertThat(index.at(chest(1))).contains(one);
+        assertThat(index.at(chest(2))).contains(one);
+        assertThat(index.at(one.spot())).as("the shopkeeper's block is no chest").isEmpty();
         assertThat(index.byId(one.id())).contains(one);
         assertThat(index.ownedBy(ALICE)).containsExactly(one);
 
@@ -46,22 +52,20 @@ class ShopIndexTest {
         assertThat(index.all()).containsExactly(renamed);
 
         index.remove(one.id());
-        assertThat(index.at(one.spot())).isEmpty();
+        assertThat(index.at(chest(1))).isEmpty();
+        assertThat(index.at(chest(2))).isEmpty();
         assertThat(index.ownedBy(ALICE)).isEmpty();
     }
 
     @Test
-    @DisplayName("a shop moved to another block is no longer found at the old one")
-    void moved() {
+    @DisplayName("a chest unlinked from an offer is no longer found as its stock")
+    void unlinked() {
         ShopIndex index = new ShopIndex();
-        Shop one = shop(1);
+        Shop one = shop(1).linked(chest(2));
         index.put(one);
-        Shop elsewhere = new Shop(one.id(), one.store(), one.owner(), one.ownerName(), one.name(), one.spot().offset(5, 0, 0),
-                one.ware(), one.prices(), one.status(), one.staff(), one.createdAt(), one.rentPaidTo(),
-                one.buyLimit(), one.lowStockAt(), one.display());
-        index.put(elsewhere);
-        assertThat(index.at(one.spot())).isEmpty();
-        assertThat(index.at(elsewhere.spot())).contains(elsewhere);
+        index.put(one.unlinked(chest(1)));
+        assertThat(index.at(chest(1))).isEmpty();
+        assertThat(index.at(chest(2))).isPresent();
     }
 
     @Test
@@ -97,8 +101,8 @@ class ShopIndexTest {
                 for (int round = 0; round < 4_000; round++) {
                     Spot spot = new Spot("s", "world", round % shops, 64, 0);
                     index.at(spot).ifPresent(found -> {
-                        if (!found.spot().equals(spot)) {
-                            broken.set("found " + found.spot() + " at " + spot);
+                        if (!found.isLinked(spot)) {
+                            broken.set("found " + found.chests() + " at " + spot);
                         }
                     });
                     index.ownedBy(ALICE);
@@ -113,7 +117,9 @@ class ShopIndexTest {
         pool.shutdown();
         assertThat(broken.get()).isNull();
         for (Shop shop : index.all()) {
-            assertThat(index.at(shop.spot())).contains(shop);
+            for (Spot chest : shop.chests()) {
+                assertThat(index.at(chest)).contains(shop);
+            }
         }
     }
 }

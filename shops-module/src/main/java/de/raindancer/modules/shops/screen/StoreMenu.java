@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A store's page: every shop in it, the real item on each. What a statue opens — and then the trading happens right
- * here, at the counter of whichever shop is clicked.
+ * A shop's page: every offer, the real item on each. What its shopkeeper opens — and then the trading happens right
+ * here, at the counter of whichever offer is clicked. Its owner and managers get the offer's back room instead.
  */
 public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen {
 
@@ -28,7 +28,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
     private final Store asked;
     private final Location via;
 
-    /** @param via the statue it was opened from; null opened from a shop or a list */
+    /** @param via where the shopkeeper it was opened at stands; null opened from the bazaar or a list */
     public StoreMenu(ShopsServices services, Player viewer, Menu parent, Store store, Location via) {
         super(viewer, services.brand(), parent);
         this.services = services;
@@ -57,9 +57,9 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
 
     @Override
     protected ItemStack emptyIcon() {
-        return store().isOwner(viewer.getUniqueId())
+        return store().mayManage(viewer.getUniqueId())
                 ? Icons.of(Material.COBWEB, "<gray>Nothing for sale yet",
-                "<gray>Look at a chest and type /bazaar create,", "<gray>or write [shop] on a sign on it.")
+                "<gray>Sneak and click your shopkeeper, then", "<gray>offer the item in your hand.")
                 : Icons.of(Material.COBWEB, "<gray>Nothing for sale yet", "<gray>Come back later.");
     }
 
@@ -68,7 +68,9 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
         Listing listing = services.book().listing(shop, services.book().index().byId(shop.id()).isPresent());
         List<String> lore = new ArrayList<>(Lines.listing(listing));
         lore.add("");
-        lore.add(listing.here() ? "<yellow>Click to trade" : "<gray>On another server");
+        boolean manager = store().mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer);
+        lore.add(!listing.here() ? "<gray>On another server" : manager ? "<yellow>Click for its back room"
+                : via == null && !services.trades().remote() ? "<gray>Buy it at the shopkeeper" : "<yellow>Click to trade");
         return Lines.ware(services, shop, "<white>" + Lines.plain(shop.ware().label()), lore);
     }
 
@@ -76,6 +78,10 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
     protected void onClick(Shop shop, InventoryClickEvent event) {
         if (services.book().index().byId(shop.id()).isEmpty()) {
             services.messages().send(viewer, "shops.refused.not-here");
+            return;
+        }
+        if (store().mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
+            new ShopManageMenu(services, viewer, this, shop).open();
             return;
         }
         new ShopFrontMenu(services, viewer, this, shop, via).open();
@@ -88,17 +94,17 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
         toolbar(4, Icons.head(store.owner(), "<gold>" + Lines.plain(store.name()),
                 store.motto().isEmpty() ? "<gray>By " + Lines.plain(store.ownerName())
                         : "<gray>" + Lines.plain(store.motto()),
-                "<dark_gray>" + entries().size() + " shops"), click ->
+                "<dark_gray>" + entries().size() + " offers"), click ->
                 services.messages().send(viewer, "shops.store.about", "store", store.name(), "owner",
                         store.ownerName()));
-        if (store.isOwner(viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
-            toolbar(6, Icons.of(Material.COMPARATOR, "<white>Look after this store",
-                    "<gray>Name, motto, statues."), click -> services.screens().storeManage(viewer, store));
+        if (store.mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
+            toolbar(6, Icons.of(Material.COMPARATOR, "<white>Look after this shop",
+                    "<gray>Offers, staff, the shopkeeper."), click -> services.screens().storeManage(viewer, store));
         }
     }
 
     @Override
     public String describe() {
-        return "a store's shops, for its customers";
+        return "a shop's offers, for its customers";
     }
 }

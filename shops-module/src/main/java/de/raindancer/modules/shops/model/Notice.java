@@ -15,7 +15,7 @@ public record Notice(UUID owner, long at, Kind kind, UUID shop, String shopName,
 
     public enum Kind {
         SOLD, BOUGHT, OUT_OF_STOCK, LOW_STOCK, FULL, CANNOT_AFFORD, REVIEWED, RENT_PAID, UNPAID, CLOSED, REOPENED,
-        REMOVED;
+        REMOVED, REBUILT;
 
         public String key() {
             return "shops.notice." + name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');

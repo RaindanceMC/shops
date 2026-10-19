@@ -13,10 +13,10 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * This server's shops in memory — asked on every click at every container, so it must answer without a database.
+ * This server's offers in memory — asked on every click at every container, so it must answer without a database.
  *
- * <p>Two maps kept in step under one lock: a lookup by block that disagreed with the lookup by id would be a chest
- * guarded as somebody else's shop.
+ * <p>Two maps kept in step under one lock: by id, and by each linked chest. A lookup by chest that disagreed with the
+ * lookup by id would be a chest guarded as stock of somebody else's offer.
  */
 public final class ShopIndex {
 
@@ -29,9 +29,9 @@ public final class ShopIndex {
         try {
             Shop old = byId.put(shop.id(), shop);
             if (old != null) {
-                bySpot.remove(old.spot().key(), old.id());
+                old.chests().forEach(chest -> bySpot.remove(chest.key(), old.id()));
             }
-            bySpot.put(shop.spot().key(), shop.id());
+            shop.chests().forEach(chest -> bySpot.put(chest.key(), shop.id()));
         } finally {
             lock.writeLock().unlock();
         }
@@ -42,7 +42,7 @@ public final class ShopIndex {
         try {
             Shop old = byId.remove(id);
             if (old != null) {
-                bySpot.remove(old.spot().key(), id);
+                old.chests().forEach(chest -> bySpot.remove(chest.key(), id));
             }
             return Optional.ofNullable(old);
         } finally {
@@ -57,13 +57,14 @@ public final class ShopIndex {
             bySpot.clear();
             for (Shop shop : shops) {
                 byId.put(shop.id(), shop);
-                bySpot.put(shop.spot().key(), shop.id());
+                shop.chests().forEach(chest -> bySpot.put(chest.key(), shop.id()));
             }
         } finally {
             lock.writeLock().unlock();
         }
     }
 
+    /** The offer this chest is stock of. */
     public Optional<Shop> at(Spot spot) {
         lock.readLock().lock();
         try {
@@ -78,6 +79,21 @@ public final class ShopIndex {
         lock.readLock().lock();
         try {
             return Optional.ofNullable(byId.get(id));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    public List<Shop> inStore(UUID store) {
+        lock.readLock().lock();
+        try {
+            List<Shop> in = new ArrayList<>();
+            for (Shop shop : byId.values()) {
+                if (shop.store().equals(store)) {
+                    in.add(shop);
+                }
+            }
+            return in;
         } finally {
             lock.readLock().unlock();
         }

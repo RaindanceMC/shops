@@ -45,7 +45,7 @@ public final class ReviewService implements IShopsService {
     public void review(Player author, Shop shop, int stars, String text, Consumer<Optional<Refusal>> then) {
         long now = clock.getAsLong();
         long since = now - Duration.ofDays(settings.reviewWindowDays()).toMillis();
-        boolean owner = shop.mayStock(author.getUniqueId());
+        boolean owner = book.staffOf(shop, author.getUniqueId());
         book.writer().write(() -> {
             boolean traded = book.trades().tradedSince(author.getUniqueId(), shop.id(), since);
             Optional<Refusal> refused = rule.check(owner, traded, stars, text, settings.reviewLimit());

@@ -26,9 +26,9 @@ import java.util.function.Supplier;
 /**
  * What this module knows, in memory, and the one way anything is written back.
  *
- * <p>This server's shops live in the {@link ShopIndex}, because every click at every container asks about them. Stores
- * and statues are few and network-wide. Other servers' shops are a copy refreshed now and then, for the browser
- * only: nothing here ever writes one of them back, so a stale copy cannot overwrite a newer row.
+ * <p>This server's offers live in the {@link ShopIndex}, because every click at every container asks about them. Shops
+ * ({@link Store}) and their shopkeepers are few and network-wide. Other servers' offers are a copy refreshed now and
+ * then, for the browser only: nothing here ever writes one of them back, so a stale copy cannot overwrite a newer row.
  */
 public final class ShopBook implements IShopsService {
 
@@ -157,12 +157,7 @@ public final class ShopBook implements IShopsService {
     }
 
     public List<Shop> inStore(UUID store) {
-        List<Shop> in = new ArrayList<>();
-        for (Shop shop : index.all()) {
-            if (shop.store().equals(store)) {
-                in.add(shop);
-            }
-        }
+        List<Shop> in = new ArrayList<>(index.inStore(store));
         for (Shop shop : elsewhere) {
             if (shop.store().equals(store)) {
                 in.add(shop);
@@ -198,23 +193,36 @@ public final class ShopBook implements IShopsService {
         writer.write(() -> stores.delete(id));
     }
 
-    public List<Statue> statuesOf(UUID store) {
+    /** The shop's shopkeeper, wherever it stands. */
+    public Optional<Statue> keeperOf(UUID store) {
         return statues.values().stream().filter(statue -> statue.store().equals(store))
-                .sorted(Comparator.comparingLong(Statue::placedAt)).toList();
+                .max(Comparator.comparingLong(Statue::placedAt));
+    }
+
+    /** Whether somebody works at this offer's shop — the owner too — and so stocks it rather than trading at it. */
+    public boolean staffOf(Shop shop, UUID who) {
+        return store(shop.store()).map(found -> found.mayStock(who)).orElse(shop.isOwner(who));
+    }
+
+    /** Whether somebody may price this offer and link its chests: its shop's owner or a manager there. */
+    public boolean managerOf(Shop shop, UUID who) {
+        return store(shop.store()).map(found -> found.mayManage(who)).orElse(shop.isOwner(who));
     }
 
     public Optional<Statue> statue(UUID entity) {
         return Optional.ofNullable(statues.get(entity));
     }
 
+    /** A shop's shopkeeper placed — the last one it had, if any, is no longer it. */
     public void placed(Statue statue) {
+        statues.values().removeIf(each -> each.store().equals(statue.store()));
         statues.put(statue.entity(), statue);
         writer.write(() -> stores.place(statue));
     }
 
+    /** Forgets a shopkeeper entity that is not its shop's any more; the shop's row is replaced, never deleted here. */
     public void unplaced(UUID entity) {
         statues.remove(entity);
-        writer.write(() -> stores.unplace(entity));
     }
 
     // ------------------------------------------------------------------ ratings and the rest

@@ -23,4 +23,13 @@ public final class RentRule implements IShopsRule {
         long paidWeeks = (ahead + WEEK - 1) / WEEK;
         return (int) Math.max(0, mostAhead - paidWeeks);
     }
+
+    /** What is given back for the time still paid for: the weekly rent, pro rata, rounded down. */
+    public de.raindancer.core.social.economy.Money refund(long paidTo, long now,
+                                                          de.raindancer.core.social.economy.Money weekly) {
+        if (paidTo <= now || !weekly.isPositive()) {
+            return de.raindancer.core.social.economy.Money.ZERO;
+        }
+        return weekly.share((double) (paidTo - now) / WEEK);
+    }
 }

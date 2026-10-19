@@ -16,15 +16,20 @@ import de.raindancer.modules.shops.model.Refusal;
 import de.raindancer.modules.shops.model.Role;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Spot;
+import de.raindancer.modules.shops.model.Statue;
 import de.raindancer.modules.shops.model.Status;
 import de.raindancer.modules.shops.model.Store;
 import de.raindancer.modules.shops.model.Ware;
+import de.raindancer.modules.shops.rules.LinkRule;
 import de.raindancer.modules.shops.rules.PlacementRule;
 import de.raindancer.modules.shops.rules.PriceRule;
 import de.raindancer.modules.shops.rules.RentRule;
 import de.raindancer.modules.shops.rules.ShopLimitRule;
 import de.raindancer.modules.shops.rules.ShopNameRule;
+import de.raindancer.modules.shops.rules.WareRule;
 import de.raindancer.modules.shops.util.PermissionNodes;
+import de.raindancer.modules.shops.visual.Shopkeepers;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
@@ -38,8 +43,8 @@ import java.util.function.LongSupplier;
 import java.util.function.UnaryOperator;
 
 /**
- * Opening, changing, handing over and closing shops and stores — each asked of the rules first, saved through the
- * book, and announced to whoever draws them ({@code changed}).
+ * Setting up, changing and closing shops and their offers — each asked of the rules first, saved through the book,
+ * and announced to whoever draws them ({@code changed}).
  */
 public final class ShopKeeper implements IShopsService {
 
@@ -52,28 +57,29 @@ public final class ShopKeeper implements IShopsService {
     private final Land land;
     private final Audit audit;
     private final NoticeService notices;
+    private final Shopkeepers keepers;
     private final Consumer<Shop> changed;
-    private final Consumer<Shop> removed;
     private final LongSupplier clock;
     private final PlacementRule placement = new PlacementRule();
     private final PriceRule prices = new PriceRule();
     private final ShopNameRule names = new ShopNameRule();
     private final ShopLimitRule limits = new ShopLimitRule();
     private final RentRule rent = new RentRule();
-    private final de.raindancer.modules.shops.rules.WareRule wareRule = new de.raindancer.modules.shops.rules.WareRule();
+    private final LinkRule links = new LinkRule();
+    private final WareRule wareRule = new WareRule();
     private volatile ShopsSettings settings;
 
     public ShopKeeper(ShopBook book, ShopLocator locator, Wares wares, Land land, Audit audit, NoticeService notices,
-                      ShopsSettings settings, Consumer<Shop> changed, Consumer<Shop> removed, LongSupplier clock) {
+                      Shopkeepers keepers, ShopsSettings settings, Consumer<Shop> changed, LongSupplier clock) {
         this.book = book;
         this.locator = locator;
         this.wares = wares;
         this.land = land;
         this.audit = audit;
         this.notices = notices;
+        this.keepers = keepers;
         this.settings = settings;
         this.changed = changed;
-        this.removed = removed;
         this.clock = clock;
     }
 
@@ -86,55 +92,36 @@ public final class ShopKeeper implements IShopsService {
         return settings;
     }
 
-    // ------------------------------------------------------------------ opening
+    // ------------------------------------------------------------------ shops
 
-    /** Whether this block could be a shop of this player's — without charging or saving anything. */
-    public Optional<Refusal> mayOpenAt(Player owner, Block block) {
+    /** Whether this player could set up a shop where they stand — without charging or placing anything. */
+    public Optional<Refusal> mayOpenHere(Player owner) {
         if (!owner.hasPermission(PermissionNodes.CREATE)) {
             return Optional.of(Refusal.NOT_ALLOWED);
         }
-        if (!(block.getState(false) instanceof Container)
-                || !placement.mayBeShop(block.getType().name(), placement.allowed(settings.containers()))) {
-            return Optional.of(Refusal.NOT_A_CONTAINER);
-        }
-        if (!placement.worldAllowed(block.getWorld().getName(), placement.allowed(settings.closedWorlds()))) {
-            return Optional.of(Refusal.WORLD_NOT_ALLOWED);
-        }
-        if (locator.shopAt(block).isPresent()) {
-            return Optional.of(Refusal.ALREADY_A_SHOP);
-        }
-        if (!isAdmin(owner) && !land.can(owner, block.getLocation(), LandAction.BUILD)) {
-            return Optional.of(Refusal.NOT_YOUR_LAND);
+        Optional<Refusal> where = keepers.mayStandHere(owner);
+        if (where.isPresent()) {
+            return where;
         }
         if (!roomForAnotherShop(owner)) {
-            return Optional.of(Refusal.TOO_MANY_SHOPS);
+            return Optional.of(Refusal.TOO_MANY_STORES);
         }
         return Optional.empty();
     }
 
     public boolean roomForAnotherShop(Player owner) {
         NumberedLimit limit = NumberedLimit.of(owner, PermissionNodes.LIMIT_PREFIX, PermissionNodes.UNLIMITED);
-        return limits.mayOpen(book.ownedBy(owner.getUniqueId()).size(), limit.highestOf(settings.shopLimit()),
+        return limits.mayOpen(book.storesOf(owner.getUniqueId()).size(), limit.highestOf(settings.shopLimit()),
                 limit.isUnlimited());
     }
 
-    /**
-     * Opens a shop at the block, trading in {@code item}. Without a price it opens paused, for the owner to price in
-     * its menu; with one it opens for trade.
-     *
-     * @param store which of the owner's stores; null is their first, made if they have none
-     */
-    public Answer<Shop> open(Player owner, Block block, ItemStack item, Prices asked, String name, UUID store) {
-        Optional<Refusal> where = mayOpenAt(owner, block);
+    /** A new shop, its shopkeeper standing where the owner stands. On the owner's own thread. */
+    public Answer<Store> openShop(Player owner, String name) {
+        Optional<Refusal> where = mayOpenHere(owner);
         if (where.isPresent()) {
             return Answer.refused(where.get());
         }
-        Optional<Refusal> notWare = notAWare(item);
-        if (notWare.isPresent()) {
-            return Answer.refused(notWare.get());
-        }
-        Ware ware = wares.of(item);
-        String called = name == null || name.isBlank() ? ware.label() : name.strip();
+        String called = name == null || name.isBlank() ? owner.getName() + "'s Shop" : name.strip();
         if (called.length() > settings.nameLimit()) {
             called = called.substring(0, settings.nameLimit()).strip();
         }
@@ -142,48 +129,172 @@ public final class ShopKeeper implements IShopsService {
         if (badName.isPresent()) {
             return Answer.refused(badName.get());
         }
-        Status status = Status.OPEN;
-        if (!asked.tradesAtAll()) {
-            status = Status.PAUSED;
-        } else {
-            Optional<Refusal> badPrice = prices.check(asked, Fees.amount(settings.mostPrice()));
-            if (badPrice.isPresent()) {
-                return Answer.refused(badPrice.get());
-            }
-        }
-        Store into = store == null ? null : book.store(store).filter(found -> found.isOwner(owner.getUniqueId()))
-                .orElse(null);
-        if (into == null) {
-            into = firstStore(owner.getUniqueId(), owner.getName());
-        }
         Money fee = Fees.amount(settings.openingPrice());
         Money charged = Money.ZERO;
         if (fee.isPositive() && !owner.hasPermission(PermissionNodes.NO_FEES)) {
-            EconomyResult paid = Fees.charge(owner.getUniqueId(), fee, "Opening a shop", SOURCE_OPENING);
+            EconomyResult paid = Fees.charge(owner.getUniqueId(), fee, "Setting up " + called, SOURCE_OPENING);
             if (!paid.succeeded()) {
                 return Answer.refused(Refusal.CANNOT_PAY_TO_OPEN);
             }
             charged = paid.amount();
         }
-        long now = clock.getAsLong();
-        Money weekly = Fees.amount(settings.rentPerWeek());
-        long paidTo = weekly.isPositive() ? now + RentRule.WEEK : 0;
-        Spot spot = locator.spotOf(block);
-        Shop shop = Shop.open(UUID.randomUUID(), into.id(), owner.getUniqueId(), owner.getName(), called, spot, ware,
-                asked, now, paidTo).withStatus(status);
-        book.saveShop(shop);
-        changed.accept(shop);
+        Store made = new Store(UUID.randomUUID(), owner.getUniqueId(), owner.getName(), called, "",
+                clock.getAsLong(), java.util.Map.of());
+        book.saveStore(made);
+        Statue keeper = keepers.place(owner, made);
         audit.record(AuditEntry.of("shops", "opened").by(owner.getUniqueId(), owner.getName())
-                .in(spot.world()).saying(called + " at " + spot.describe() + " selling " + ware.label())
+                .in(keeper.spot().world()).saying(called + " at " + keeper.spot().describe())
                 .with("fee", Long.toString(charged.minor())));
-        return Answer.done(shop);
+        return Answer.done(made);
     }
 
-    // ------------------------------------------------------------------ changing
+    public Answer<Store> editStore(Player by, Store store, UnaryOperator<Store> edit) {
+        Store now = book.store(store.id()).orElse(store);
+        if (!now.isOwner(by.getUniqueId()) && !isAdmin(by)) {
+            return Answer.refused(Refusal.NOT_ALLOWED);
+        }
+        Store edited = edit.apply(now);
+        Optional<Refusal> bad = names.check(edited.name(), settings.nameLimit());
+        if (bad.isPresent()) {
+            return Answer.refused(bad.get());
+        }
+        if (edited.motto().length() > settings.reviewLimit() || edited.motto().indexOf('<') >= 0) {
+            return Answer.refused(Refusal.BAD_NAME);
+        }
+        book.saveStore(edited);
+        keepers.refresh(edited);
+        book.inStore(edited.id()).forEach(changed);
+        return Answer.done(edited);
+    }
 
-    /** Prices, bundle, status, display, limits: what an owner or a manager may change. */
+    public Answer<Store> trust(Player by, Store store, UUID who, Role role) {
+        return editStore(by, store, edited -> edited.withStaff(who, role));
+    }
+
+    /**
+     * The shopkeeper moves to where its owner (or a manager) stands. Refused when a stock chest would then be out of
+     * reach — the chests and the shopkeeper are one shop. On the player's own thread.
+     */
+    public Answer<Store> moveKeeper(Player by, Store store) {
+        Store now = book.store(store.id()).orElse(store);
+        if (!now.mayManage(by.getUniqueId()) && !isAdmin(by)) {
+            return Answer.refused(Refusal.NOT_ALLOWED);
+        }
+        Optional<Refusal> where = keepers.mayStandHere(by);
+        if (where.isPresent()) {
+            return Answer.refused(where.get());
+        }
+        Location to = by.getLocation();
+        Spot spot = locator.spotOf(to.getBlock());
+        List<Shop> offers = book.inStore(now.id());
+        for (Shop offer : offers) {
+            for (Spot chest : offer.chests()) {
+                if (!chest.isOn(spot.server()) || !chest.world().equals(spot.world())
+                        || distance(chest, spot) > settings.reach()) {
+                    return Answer.refused(Refusal.TOO_FAR);
+                }
+            }
+        }
+        Statue keeper = keepers.place(by, now);
+        for (Shop offer : offers) {
+            if (book.index().byId(offer.id()).isPresent()) {
+                save(offer, edited -> edited.withSpot(keeper.spot()));
+            }
+        }
+        return Answer.done(now);
+    }
+
+    /** Closes the shop for good: its offers end, its shopkeeper goes; the chests and their stock stay. */
+    public Answer<Store> closeShop(Player by, Store store) {
+        Store now = book.store(store.id()).orElse(store);
+        if (!now.isOwner(by.getUniqueId()) && !isAdmin(by)) {
+            return Answer.refused(Refusal.NOT_ALLOWED);
+        }
+        for (Shop offer : book.inStore(now.id())) {
+            if (book.index().byId(offer.id()).isPresent()) {
+                book.removeShop(offer.id());
+                notices.forgetShop(offer.id());
+            }
+        }
+        keepers.remove(now);
+        book.removeStore(now.id());
+        if (!now.isOwner(by.getUniqueId())) {
+            notices.tell(new Notice(now.owner(), clock.getAsLong(), Notice.Kind.REMOVED, now.id(), now.name(),
+                    Money.ZERO, 0, by.getName()));
+        }
+        audit.record(AuditEntry.of("shops", "closed-shop").by(by.getUniqueId(), by.getName())
+                .to(now.owner(), now.ownerName()).saying(now.name()));
+        return Answer.done(now);
+    }
+
+    // ------------------------------------------------------------------ offers
+
+    /**
+     * A new offer of this shop, trading in {@code item} — paused until it has a price and a chest. Sold at the shop's
+     * shopkeeper, so the shop needs one on this server.
+     */
+    public Answer<Shop> addOffer(Player by, Store store, ItemStack item) {
+        Store now = book.store(store.id()).orElse(store);
+        if (!now.mayManage(by.getUniqueId()) && !isAdmin(by)) {
+            return Answer.refused(Refusal.NOT_ALLOWED);
+        }
+        Optional<Statue> keeper = book.keeperOf(now.id());
+        if (keeper.isEmpty() || !keeper.get().spot().isOn(book.server())) {
+            return Answer.refused(Refusal.NOT_HERE);
+        }
+        if (book.inStore(now.id()).size() >= settings.offerLimit()) {
+            return Answer.refused(Refusal.TOO_MANY_OFFERS);
+        }
+        Optional<Refusal> notWare = notAWare(item);
+        if (notWare.isPresent()) {
+            return Answer.refused(notWare.get());
+        }
+        Ware ware = wares.of(item);
+        String called = ware.label().length() > settings.nameLimit()
+                ? ware.label().substring(0, settings.nameLimit()).strip() : ware.label();
+        long time = clock.getAsLong();
+        Money weekly = Fees.amount(settings.rentPerWeek());
+        Shop offer = Shop.open(UUID.randomUUID(), now.id(), now.owner(), now.ownerName(), called, keeper.get().spot(),
+                ware, new Prices(Money.ZERO, Money.ZERO, 1), time, weekly.isPositive() ? time + RentRule.WEEK : 0)
+                .withStatus(Status.PAUSED);
+        book.saveShop(offer);
+        changed.accept(offer);
+        audit.record(AuditEntry.of("shops", "offered").by(by.getUniqueId(), by.getName())
+                .saying(now.name() + " offers " + ware.label()));
+        return Answer.done(offer);
+    }
+
+    /**
+     * Links the clicked chest to the offer, or unlinks it if it already is. On the block's own thread — the clicking
+     * player's.
+     */
+    public Answer<LinkRule.Change> link(Player by, Shop offer, Block block) {
+        Shop now = current(offer);
+        if (!book.managerOf(now, by.getUniqueId()) && !isAdmin(by)) {
+            return Answer.refused(Refusal.NOT_ALLOWED);
+        }
+        Spot chest = locator.spotOf(block);
+        Spot keeper = now.spot();
+        boolean container = block.getState(false) instanceof Container
+                && placement.mayBeShop(block.getType().name(), placement.allowed(settings.containers()));
+        UUID linkedTo = locator.shopAt(block).filter(found -> found.isLinked(chest)).map(Shop::id).orElse(null);
+        UUID partner = locator.partnerShop(block).map(Shop::id).orElse(null);
+        boolean sameWorld = chest.isOn(keeper.server()) && chest.world().equals(keeper.world());
+        boolean mayBuild = isAdmin(by) || land.can(by, block.getLocation(), LandAction.BUILD);
+        LinkRule.Verdict verdict = links.judge(new LinkRule.Ask(now.id(), container, sameWorld,
+                sameWorld ? distance(chest, keeper) : Double.MAX_VALUE, settings.reach(), linkedTo, partner,
+                now.chests().size(), settings.chestLimit(), mayBuild));
+        if (verdict.refusal() != null) {
+            return Answer.refused(verdict.refusal());
+        }
+        Answer<Shop> saved = save(now, edited -> verdict.change() == LinkRule.Change.LINK ? edited.linked(chest)
+                : edited.unlinked(chest));
+        return saved.ok() ? Answer.done(verdict.change()) : Answer.refused(saved.refusal());
+    }
+
+    /** Prices, bundle, status, limits: what an owner or a manager may change. */
     public Answer<Shop> manage(Player by, Shop shop, UnaryOperator<Shop> edit) {
-        if (!shop.mayManage(by.getUniqueId()) && !isAdmin(by)) {
+        if (!book.managerOf(shop, by.getUniqueId()) && !isAdmin(by)) {
             return Answer.refused(Refusal.NOT_ALLOWED);
         }
         return save(current(shop), edit);
@@ -203,7 +314,7 @@ public final class ShopKeeper implements IShopsService {
         });
     }
 
-    /** Opening a paused shop or pausing an open one. A shop staff closed only staff open; an unpaid one, rent. */
+    /** Opening a paused offer or pausing an open one. One staff closed only staff open; an unpaid one, rent. */
     public Answer<Shop> toggleOpen(Player by, Shop shop) {
         Shop now = current(shop);
         if (now.status() == Status.CLOSED && !isAdmin(by)) {
@@ -215,6 +326,9 @@ public final class ShopKeeper implements IShopsService {
         if (now.status() != Status.OPEN && !now.prices().tradesAtAll()) {
             return Answer.refused(Refusal.NO_PRICE);
         }
+        if (now.status() != Status.OPEN && now.chests().isEmpty()) {
+            return Answer.refused(Refusal.NO_CHESTS);
+        }
         Status next = now.status() == Status.OPEN ? Status.PAUSED : Status.OPEN;
         return manage(by, now, edited -> edited.withStatus(next));
     }
@@ -224,10 +338,10 @@ public final class ShopKeeper implements IShopsService {
         if (bad.isPresent()) {
             return Answer.refused(bad.get());
         }
-        return owned(by, shop, edited -> edited.withName(name.strip()));
+        return manage(by, shop, edited -> edited.withName(name.strip()));
     }
 
-    /** A new thing to sell: whatever is in the owner's hand now. The stock of the old ware stays in the container. */
+    /** A new thing to trade: whatever is in the player's hand now. Stock of the old item stays in the chests. */
     public Answer<Shop> reware(Player by, Shop shop, ItemStack item) {
         Optional<Refusal> notWare = notAWare(item);
         if (notWare.isPresent()) {
@@ -237,34 +351,7 @@ public final class ShopKeeper implements IShopsService {
         return manage(by, shop, edited -> edited.withWare(ware));
     }
 
-    public Answer<Shop> trust(Player by, Shop shop, UUID who, Role role) {
-        return owned(by, shop, edited -> edited.withStaff(who, role));
-    }
-
-    public Answer<Shop> moveToStore(Player by, Shop shop, UUID store) {
-        Optional<Store> target = book.store(store).filter(found -> found.isOwner(shop.owner()));
-        if (target.isEmpty()) {
-            return Answer.refused(Refusal.NOT_ALLOWED);
-        }
-        return owned(by, shop, edited -> edited.withStore(store));
-    }
-
-    /** Hands the shop over, stock and history included, into the new owner's first store. */
-    public Answer<Shop> handOver(Player by, Shop shop, UUID to, String toName, boolean roomForIt) {
-        if (to.equals(shop.owner())) {
-            return Answer.refused(Refusal.NOT_ALLOWED);
-        }
-        if (!roomForIt) {
-            return Answer.refused(Refusal.TOO_MANY_SHOPS);
-        }
-        Store theirs = firstStore(to, toName);
-        Answer<Shop> done = owned(by, shop, edited -> edited.withOwner(to, toName).withStore(theirs.id()));
-        done.result().ifPresent(given -> audit.record(AuditEntry.of("shops", "handed-over")
-                .by(by.getUniqueId(), by.getName()).to(to, toName).saying(given.name())));
-        return done;
-    }
-
-    /** Staff closing a shop for good reason, or opening it again. */
+    /** Staff closing an offer for good reason, or opening it again. */
     public Answer<Shop> staffClose(Player by, Shop shop, boolean close) {
         if (!isAdmin(by)) {
             return Answer.refused(Refusal.NOT_ALLOWED);
@@ -279,22 +366,20 @@ public final class ShopKeeper implements IShopsService {
         return done;
     }
 
-    /** Closes the shop for good. The container and everything in it stay where they are. */
+    /** Ends the offer. Its chests and everything in them stay where they are, chests again. */
     public Answer<Shop> remove(Player by, Shop shop) {
         Shop now = current(shop);
-        if (!now.isOwner(by.getUniqueId()) && !isAdmin(by)) {
+        if (!book.managerOf(now, by.getUniqueId()) && !isAdmin(by)) {
             return Answer.refused(Refusal.NOT_ALLOWED);
         }
         book.removeShop(now.id());
         notices.forgetShop(now.id());
-        removed.accept(now);
-        if (!now.isOwner(by.getUniqueId())) {
+        if (!book.managerOf(now, by.getUniqueId())) {
             notices.tell(new Notice(now.owner(), clock.getAsLong(), Notice.Kind.REMOVED, now.id(), now.name(),
                     Money.ZERO, 0, by.getName()));
         }
         audit.record(AuditEntry.of("shops", "removed").by(by.getUniqueId(), by.getName())
-                .to(now.owner(), now.ownerName()).in(now.spot().world()).saying(now.name() + " at "
-                        + now.spot().describe()));
+                .to(now.owner(), now.ownerName()).saying(now.name()));
         return Answer.done(now);
     }
 
@@ -304,7 +389,7 @@ public final class ShopKeeper implements IShopsService {
         return Fees.amount(settings.rentPerWeek());
     }
 
-    /** Pays rent ahead, from whoever pays — the owner, or a friend. Opens an unpaid shop again. */
+    /** Pays rent ahead, from whoever pays — the owner, or a friend. Opens an unpaid offer again. */
     public Answer<Shop> payRent(Player payer, Shop shop, int weeks) {
         Shop now = current(shop);
         if (!now.paysRent()) {
@@ -326,7 +411,7 @@ public final class ShopKeeper implements IShopsService {
         });
     }
 
-    /** What happens when rent falls due: the owner pays a week from their balance if they can, or the shop closes. */
+    /** What happens when rent falls due: the owner pays a week from their balance if they can, or the offer pauses. */
     public void collectRent(Shop shop) {
         Shop now = current(shop);
         long time = clock.getAsLong();
@@ -345,73 +430,6 @@ public final class ShopKeeper implements IShopsService {
         }
     }
 
-    // ------------------------------------------------------------------ stores
-
-    /** The owner's first store, made for them — named after them — if they have none. */
-    public Store firstStore(UUID owner, String ownerName) {
-        List<Store> theirs = book.storesOf(owner);
-        if (!theirs.isEmpty()) {
-            return theirs.get(0);
-        }
-        Store made = new Store(UUID.randomUUID(), owner, ownerName, null, "", clock.getAsLong());
-        book.saveStore(made);
-        return made;
-    }
-
-    public Answer<Store> openStore(Player owner, String name) {
-        Optional<Refusal> bad = names.check(name, settings.nameLimit());
-        if (bad.isPresent()) {
-            return Answer.refused(bad.get());
-        }
-        if (book.storesOf(owner.getUniqueId()).size() >= settings.storeLimit()) {
-            return Answer.refused(Refusal.TOO_MANY_STORES);
-        }
-        Store made = new Store(UUID.randomUUID(), owner.getUniqueId(), owner.getName(), name.strip(), "",
-                clock.getAsLong());
-        book.saveStore(made);
-        return Answer.done(made);
-    }
-
-    public Answer<Store> editStore(Player by, Store store, UnaryOperator<Store> edit) {
-        if (!store.isOwner(by.getUniqueId()) && !isAdmin(by)) {
-            return Answer.refused(Refusal.NOT_ALLOWED);
-        }
-        Store edited = edit.apply(book.store(store.id()).orElse(store));
-        Optional<Refusal> bad = names.check(edited.name(), settings.nameLimit());
-        if (bad.isPresent()) {
-            return Answer.refused(bad.get());
-        }
-        if (edited.motto().length() > settings.reviewLimit() || edited.motto().indexOf('<') >= 0) {
-            return Answer.refused(Refusal.BAD_NAME);
-        }
-        book.saveStore(edited);
-        book.inStore(edited.id()).forEach(changed);
-        return Answer.done(edited);
-    }
-
-    /**
-     * Closes a store; its shops move to the owner's first other store, so no shop is ever without one. The last
-     * store cannot be closed while shops are in it.
-     */
-    public Answer<Store> closeStore(Player by, Store store) {
-        if (!store.isOwner(by.getUniqueId()) && !isAdmin(by)) {
-            return Answer.refused(Refusal.NOT_ALLOWED);
-        }
-        Optional<Store> other = book.storesOf(store.owner()).stream()
-                .filter(each -> !each.id().equals(store.id())).findFirst();
-        List<Shop> inside = book.inStore(store.id());
-        if (other.isEmpty() && !inside.isEmpty()) {
-            return Answer.refused(Refusal.LAST_STORE);
-        }
-        for (Shop shop : inside) {
-            if (book.index().byId(shop.id()).isPresent()) {
-                save(shop, edited -> edited.withStore(other.orElseThrow().id()));
-            }
-        }
-        book.removeStore(store.id());
-        return Answer.done(store);
-    }
-
     // ------------------------------------------------------------------ the rest
 
     private Optional<Refusal> notAWare(ItemStack item) {
@@ -424,11 +442,11 @@ public final class ShopKeeper implements IShopsService {
         return player.hasPermission(PermissionNodes.ADMIN);
     }
 
-    private Answer<Shop> owned(Player by, Shop shop, UnaryOperator<Shop> edit) {
-        if (!shop.isOwner(by.getUniqueId()) && !isAdmin(by)) {
-            return Answer.refused(Refusal.NOT_ALLOWED);
-        }
-        return save(current(shop), edit);
+    private static double distance(Spot a, Spot b) {
+        double dx = a.x() - b.x();
+        double dy = a.y() - b.y();
+        double dz = a.z() - b.z();
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     private Answer<Shop> save(Shop shop, UnaryOperator<Shop> edit) {
@@ -441,7 +459,7 @@ public final class ShopKeeper implements IShopsService {
         return Answer.done(edited);
     }
 
-    /** The shop as it is now: a menu holds the one it was opened with, and somebody may have changed it since. */
+    /** The offer as it is now: a menu holds the one it was opened with, and somebody may have changed it since. */
     private Shop current(Shop shop) {
         return book.index().byId(shop.id()).orElse(shop);
     }

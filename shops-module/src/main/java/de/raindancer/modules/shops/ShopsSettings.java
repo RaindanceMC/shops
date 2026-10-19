@@ -10,7 +10,8 @@ import de.raindancer.core.data.settings.Topic;
 import org.bukkit.Material;
 
 /**
- * What an owner can decide about players' shops. The record is the schema: the file, its comments, its validation
+ * What an owner can decide about players' shops — shopkeepers, their offers and the chests the offers sell from.
+ * The record is the schema: the file, its comments, its validation
  * and the {@code /settings} pages all come from it.
  */
 @Settings(id = "shops", topics = {
@@ -19,54 +20,63 @@ import org.bukkit.Material;
         @Topic(path = "shops/trading", title = "Trading", icon = Material.EMERALD),
         @Topic(path = "shops/money", title = "Fees, rent and the server's cut", icon = Material.GOLD_INGOT),
         @Topic(path = "shops/finding", title = "Finding shops", icon = Material.SPYGLASS),
-        @Topic(path = "shops/stores", title = "Stores and statues", icon = Material.PLAYER_HEAD),
 })
 public record ShopsSettings(
 
-        @In("shops/opening") @Title("Blocks that may be shops")
-        @Describe("Containers, by name, separated by commas. Shulker boxes and ender chests are never shops, whatever "
-                + "this says: a box is carried off with its stock in it, and an ender chest is each player's own.")
+        @In("shops/opening") @Title("Blocks that may be stock chests")
+        @Describe("Containers, by name, separated by commas, that an offer may keep its stock in. Shulker boxes and "
+                + "ender chests never are, whatever this says: a box is carried off with its stock in it, and an ender "
+                + "chest is each player's own.")
         @Key("containers")
         String containers,
 
         @In("shops/opening") @Title("Worlds without shops")
-        @Describe("World names, separated by commas, where nobody may open a shop — an arena, a lobby. Blank allows "
+        @Describe("World names, separated by commas, where nobody may set up a shop — an arena, a lobby. Blank allows "
                 + "them everywhere the land allows building.")
         @Key("closed-worlds")
         String closedWorlds,
 
-        @In("shops/opening") @Title("Shops one player may have") @Range(min = 0, max = 1000)
-        @Describe("Permissions rainsshops.limit.<number> raise it for some; rainsshops.limit.unlimited has no limit. "
-                + "Zero lets only those with a permission open shops.")
+        @In("shops/opening") @Title("Shops one player may have") @Range(min = 0, max = 100)
+        @Describe("A shop is a shopkeeper with the owner's skin and the offers it sells. Permissions "
+                + "rainsshops.limit.<number> raise it for some; rainsshops.limit.unlimited has no limit. Zero lets only "
+                + "those with a permission set up shops.")
         @Key("most-shops")
         int mostShops,
 
-        @In("shops/opening") @Title("Longest a shop's name may be") @Range(min = 3, max = 48)
-        @Describe("Characters. It floats above the shop and heads its page, and a long one is cut off in both.")
+        @In("shops/opening") @Title("Offers one shop may have") @Range(min = 1, max = 200)
+        @Describe("Each offer is one item, its prices, and the chests its stock is kept in.")
+        @Key("most-offers")
+        int mostOffers,
+
+        @In("shops/opening") @Title("Chests one offer may take its stock from") @Range(min = 1, max = 64)
+        @Describe("Both halves of a double chest count as one.")
+        @Key("most-chests")
+        int mostChests,
+
+        @In("shops/opening") @Title("Farthest a stock chest may be from its shopkeeper") @Range(min = 4, max = 64)
+        @Describe("Blocks. The chests and the shopkeeper make one shop; a chest across the map is not part of it.")
+        @Key("link-reach")
+        int linkReach,
+
+        @In("shops/opening") @Title("Longest a shop's or an offer's name may be") @Range(min = 3, max = 48)
+        @Describe("Characters. It heads the shop's page and stands over the shopkeeper, and a long one is cut off.")
         @Key("longest-name")
         int longestName,
 
-        @In("shops/opening") @Title("Signs open shops")
-        @Describe("Whether writing [shop] on a sign on a container opens a shop there: prices on the second line "
-                + "(B 10 : S 4), the bundle on the third (x16), a name on the fourth. Off, only /shop create does.")
-        @Key("sign-shops")
-        boolean signShops,
-
-        @In("shops/money") @Title("Price of opening a shop")
-        @Describe("Money, written like 25 or 1.5k, taken when a shop is opened. 0 makes it free. Staff with "
-                + "rainsshops.bypass.fees pay nothing.")
+        @In("shops/money") @Title("Price of setting up a shop")
+        @Describe("Money, written like 25 or 1.5k, taken when a shopkeeper is placed for a new shop. 0 makes it free. "
+                + "Staff with rainsshops.bypass.fees pay nothing.")
         @Key("opening-price")
         String openingPrice,
 
-        @In("shops/money") @Title("Rent per week")
-        @Describe("Money each shop costs every week, the first week included in opening it. Unpaid, the shop "
-                + "closes until its owner pays (/shop rent) — nothing is ever taken away or deleted for it. "
-                + "0 switches rent off.")
+        @In("shops/money") @Title("Rent per offer per week")
+        @Describe("Money each offer costs every week, the first week included in adding it. Unpaid, the offer pauses "
+                + "until its owner pays — nothing is ever taken away or deleted for it. 0 switches rent off.")
         @Key("rent-per-week")
         String rentPerWeek,
 
         @In("shops/money") @Title("Most weeks paid ahead") @Range(min = 1, max = 52)
-        @Describe("How far ahead an owner may pay rent. Stops a fortune vanishing into a shop's rent by a slip.")
+        @Describe("How far ahead an owner may pay rent. Stops a fortune vanishing into rent by a slip.")
         @Key("most-weeks-ahead")
         int mostWeeksAhead,
 
@@ -77,8 +87,8 @@ public record ShopsSettings(
         int serverCutPercent,
 
         @In("shops/money") @Title("Highest price for one bundle")
-        @Describe("Money. A ceiling on what a shop may ask or offer for one bundle, against typos with six zeros. "
-                + "0 is no ceiling.")
+        @Describe("Money. A ceiling on what an offer may ask or pay for one bundle, against typos with six zeros. 0 is "
+                + "no ceiling.")
         @Key("most-price")
         String mostPrice,
 
@@ -88,15 +98,15 @@ public record ShopsSettings(
         @Key("partial-trades")
         boolean partialTrades,
 
-        @In("shops/trading") @Title("Hoppers may fill shops")
-        @Describe("Whether a hopper may push items into a shop's container, for a farm that stocks its owner's "
-                + "shop. A hopper never takes anything out of a shop, whatever this says.")
+        @In("shops/trading") @Title("Hoppers may fill stock chests")
+        @Describe("Whether a hopper may push items into a stock chest, for a farm that stocks its owner's offer. A "
+                + "hopper never takes anything out of one, whatever this says.")
         @Key("hoppers-fill-shops")
         boolean hoppersFillShops,
 
         @In("shops/trading") @Title("Tell owners at once")
-        @Describe("Whether an owner who is online hears about each trade as it happens. Owners who are away always "
-                + "get a summary when they come back.")
+        @Describe("Whether an owner who is online hears about each trade as it happens. Owners who are away always get "
+                + "a summary when they come back.")
         @Key("tell-online-owners")
         boolean tellOnlineOwners,
 
@@ -105,33 +115,11 @@ public record ShopsSettings(
         @Key("keep-trades-days")
         int keepTradesDays,
 
-        @In("shops/finding") @Title("Show the item above shops")
-        @Describe("A floating copy of the item and a line with the price over every shop. Owners can switch it "
-                + "off for their own shop.")
-        @Key("displays")
-        boolean displays,
-
-        @In("shops/finding") @Title("Show shops on other servers")
-        @Describe("On a network: whether /shops lists the shops of the other servers too, with their stock as of "
-                + "their last trade.")
-        @Key("browse-network")
-        boolean browseNetwork,
-
-        @In("shops/finding") @Title("Travel to shops")
-        @Describe("Whether a shop in the browser can be clicked to go there — on another server too. The shop's "
-                + "land still decides whether visitors may arrive.")
-        @Key("travel-to-shops")
-        boolean travelToShops,
-
-        @In("shops/finding") @Title("Stand still before travelling") @Range(min = 0, max = 60)
-        @Describe("Seconds. Zero goes at once.")
-        @Key("travel-warmup")
-        int travelWarmup,
-
-        @In("shops/finding") @Title("Price of travelling to a shop")
-        @Describe("Money taken for each trip to a shop. 0 is free.")
-        @Key("travel-price")
-        String travelPrice,
+        @In("shops/trading") @Title("Trade from the bazaar")
+        @Describe("Whether customers may buy and sell from /bazaar without walking to the shop, as long as its stock "
+                + "chests are on this server. Off, /bazaar only finds shops and takes you there.")
+        @Key("remote-trades")
+        boolean remoteTrades,
 
         @In("shops/trading") @Title("Days a customer may review after trading") @Range(min = 1, max = 365)
         @Describe("Only somebody who traded at a shop within this many days may review it.")
@@ -143,37 +131,33 @@ public record ShopsSettings(
         @Key("longest-review")
         int longestReview,
 
-        @In("shops/stores") @Title("Stores one player may have") @Range(min = 1, max = 100)
-        @Describe("A store is a name over any number of its owner's shops — a smithy, a farm stand — and what a "
-                + "statue of its owner opens. Every player has one to start with.")
-        @Key("most-stores")
-        int mostStores,
+        @In("shops/finding") @Title("Show shops on other servers")
+        @Describe("On a network: whether /bazaar lists the offers of the other servers too, with their stock as of "
+                + "their last trade.")
+        @Key("browse-network")
+        boolean browseNetwork,
 
-        @In("shops/stores") @Title("Statues per store") @Range(min = 0, max = 20)
-        @Describe("How many statues of its owner a store may have standing. Clicking one opens the store, with "
-                + "every one of its shops to trade at. Zero switches statues off.")
-        @Key("statues-per-store")
-        int statuesPerStore,
+        @In("shops/finding") @Title("Travel to shops")
+        @Describe("Whether a shop in the bazaar can be clicked to go to its shopkeeper — on another server too. The "
+                + "shop's land still decides whether visitors may arrive.")
+        @Key("travel-to-shops")
+        boolean travelToShops,
 
-        @In("shops/stores") @Title("Price of a statue")
-        @Describe("Money taken for placing a statue. 0 is free; staff with rainsshops.bypass.fees pay nothing.")
-        @Key("statue-price")
-        String statuePrice,
+        @In("shops/finding") @Title("Stand still before travelling") @Range(min = 0, max = 60)
+        @Describe("Seconds. Zero goes at once.")
+        @Key("travel-warmup")
+        int travelWarmup,
 
-        @In("shops/stores") @Title("Trade from a statue at any distance")
-        @Describe("Whether a store's statue trades at shops wherever they are on this server, as long as their "
-                + "chunk is loaded. Off, only at shops within 64 blocks of the statue — a statue then fronts a "
-                + "market hall rather than the whole map.")
-        @Key("statues-reach-everywhere")
-        boolean statuesReachEverywhere) {
+        @In("shops/finding") @Title("Price of travelling to a shop")
+        @Describe("Money taken for each trip to a shop. 0 is free.")
+        @Key("travel-price")
+        String travelPrice) {
 
     public static final ShopsSettings DEFAULTS = new ShopsSettings(
-            "CHEST, TRAPPED_CHEST, BARREL", "", 5, 24, true,
+            "CHEST, TRAPPED_CHEST, BARREL", "", 3, 27, 12, 24, 24,
             "0", "0", 8, 0, "0",
-            true, true, true, 180,
-            true, true, true, 3, "0",
-            30, 120,
-            3, 2, "0", true);
+            true, true, true, 180, true, 30, 120,
+            true, true, 3, "0");
 
     public int cutPercent() {
         return Math.max(0, Math.min(100, serverCutPercent));
@@ -183,8 +167,22 @@ public record ShopsSettings(
         return Math.max(3, Math.min(48, longestName));
     }
 
+    /** Shops (shopkeepers) one player may have, before permissions. */
     public int shopLimit() {
-        return Math.max(0, Math.min(1000, mostShops));
+        return Math.max(0, Math.min(100, mostShops));
+    }
+
+    public int offerLimit() {
+        return Math.max(1, Math.min(200, mostOffers));
+    }
+
+    public int chestLimit() {
+        return Math.max(1, Math.min(64, mostChests));
+    }
+
+    /** Farthest a stock chest may be from its shopkeeper, in blocks. */
+    public int reach() {
+        return Math.max(4, Math.min(64, linkReach));
     }
 
     public int weeksAhead() {
@@ -207,50 +205,52 @@ public record ShopsSettings(
         return Math.max(7, Math.min(3650, keepTradesDays));
     }
 
-    public int storeLimit() {
-        return Math.max(1, Math.min(100, mostStores));
-    }
-
-    public int statueLimit() {
-        return Math.max(0, Math.min(20, statuesPerStore));
-    }
-
     public ShopsSettings withServerCutPercent(int percent) {
-        return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, openingPrice,
-                rentPerWeek, mostWeeksAhead, percent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice, reviewDays,
-                longestReview, mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
+        return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
+                openingPrice, rentPerWeek, mostWeeksAhead, percent, mostPrice, partialTrades, hoppersFillShops,
+                tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
+                travelToShops, travelWarmup, travelPrice);
     }
 
     public ShopsSettings withPartialTrades(boolean partial) {
-        return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, openingPrice,
-                rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partial, hoppersFillShops,
-                tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview,
-                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
+        return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
+                openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partial, hoppersFillShops,
+                tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
+                travelToShops, travelWarmup, travelPrice);
     }
 
     public ShopsSettings withRentPerWeek(String rent) {
-        return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, openingPrice,
-                rent, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
-                tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview,
-                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
+        return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
+                openingPrice, rent, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
+                tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
+                travelToShops, travelWarmup, travelPrice);
     }
 
     public ShopsSettings withOpeningPrice(String price) {
-        return new ShopsSettings(containers, closedWorlds, mostShops, longestName, signShops, price,
-                rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
-                tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview,
-                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
+        return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
+                price, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
+                tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
+                travelToShops, travelWarmup, travelPrice);
     }
 
     public ShopsSettings withMostShops(int most) {
-        return new ShopsSettings(containers, closedWorlds, most, longestName, signShops, openingPrice,
-                rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
-                tellOnlineOwners, keepTradesDays, displays, browseNetwork, travelToShops, travelWarmup, travelPrice,
-                reviewDays, longestReview,
-                mostStores, statuesPerStore, statuePrice, statuesReachEverywhere);
+        return new ShopsSettings(containers, closedWorlds, most, mostOffers, mostChests, linkReach, longestName,
+                openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades,
+                hoppersFillShops, tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview,
+                browseNetwork, travelToShops, travelWarmup, travelPrice);
+    }
+
+    public ShopsSettings withLinkReach(int blocks) {
+        return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, blocks, longestName,
+                openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades,
+                hoppersFillShops, tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview,
+                browseNetwork, travelToShops, travelWarmup, travelPrice);
+    }
+
+    public ShopsSettings withRemoteTrades(boolean remote) {
+        return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
+                openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades,
+                hoppersFillShops, tellOnlineOwners, keepTradesDays, remote, reviewDays, longestReview, browseNetwork,
+                travelToShops, travelWarmup, travelPrice);
     }
 }

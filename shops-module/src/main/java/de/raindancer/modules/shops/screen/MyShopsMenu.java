@@ -1,12 +1,11 @@
 package de.raindancer.modules.shops.screen;
 
+import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
-import de.raindancer.modules.shops.model.Listing;
-import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Store;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -18,8 +17,8 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The viewer's own shops, and the doors to their stores, their statement and a new store. */
-public final class MyShopsMenu extends PaginatedMenu<Shop> implements IShopsScreen {
+/** The viewer's own shops — one entry per shopkeeper — and the doors to a new one, their statement and the bazaar. */
+public final class MyShopsMenu extends PaginatedMenu<Store> implements IShopsScreen {
 
     private final ShopsServices services;
 
@@ -39,15 +38,15 @@ public final class MyShopsMenu extends PaginatedMenu<Shop> implements IShopsScre
     }
 
     @Override
-    protected List<Shop> entries() {
-        return services.book().ownedBy(viewer.getUniqueId());
+    protected List<Store> entries() {
+        return services.book().storesOf(viewer.getUniqueId());
     }
 
     @Override
     protected ItemStack emptyIcon() {
         return Icons.of(Material.COBWEB, "<gray>You have no shop yet",
-                "<gray>Look at a chest or barrel and type", "<white>/bazaar create <price>",
-                "<gray>— or write [shop] on a sign on it.", "<yellow>Click to be told again.");
+                "<gray>Stand where your shopkeeper should be", "<gray>and type <white>/bazaar create <name>",
+                "<yellow>Click to be told again.");
     }
 
     @Override
@@ -57,36 +56,35 @@ public final class MyShopsMenu extends PaginatedMenu<Shop> implements IShopsScre
     }
 
     @Override
-    protected ItemStack icon(Shop shop) {
-        Listing listing = services.book().listing(shop, services.book().index().byId(shop.id()).isPresent());
-        List<String> lore = new ArrayList<>(Lines.listing(listing));
-        services.book().store(shop.store()).ifPresent(store -> lore.add("<dark_gray>In " + Lines.plain(store.name())));
+    protected ItemStack icon(Store store) {
+        List<String> lore = new ArrayList<>();
+        int offers = services.book().inStore(store.id()).size();
+        lore.add("<gray>" + offers + " offer" + (offers == 1 ? "" : "s"));
+        lore.add("<gray>" + store.staff().size() + " helping");
+        services.book().keeperOf(store.id()).ifPresent(keeper -> lore.add("<dark_gray>Shopkeeper at "
+                + Lines.plain(keeper.spot().describe()) + " on " + Lines.plain(keeper.spot().server())));
         lore.add("");
-        lore.add(listing.here() ? "<yellow>Click for the back room" : "<gray>Look after it on its own server");
-        return Lines.ware(services, shop, "<white>" + Lines.plain(shop.name()), lore);
+        lore.add("<yellow>Click to look after it");
+        return Icons.head(store.owner(), "<gold>" + Lines.plain(store.name()), lore);
     }
 
     @Override
-    protected void onClick(Shop shop, InventoryClickEvent event) {
-        new ShopManageMenu(services, viewer, this, shop).open();
+    protected void onClick(Store store, InventoryClickEvent event) {
+        services.screens().storeManage(viewer, store);
     }
 
     @Override
     protected void decorate() {
         super.decorate();
-        List<Store> stores = services.book().storesOf(viewer.getUniqueId());
-        toolbar(2, Icons.of(Material.BARREL, "<white>Your stores (" + stores.size() + ")",
-                "<gray>Names over your shops, and statues of you", "<gray>that open them."), click ->
-                new StoreChooserMenu(services, viewer, this, viewer.getUniqueId(), "Your stores",
-                        store -> services.screens().storeManage(viewer, store)).open());
-        boolean room = stores.size() < services.config().storeLimit();
-        toolbar(3, room, Icons.of(Material.CRAFTING_TABLE, "<white>Open another store",
-                        "<gray>You may have " + services.config().storeLimit() + "."),
-                "You have as many stores as you may", click -> Lines.ask(services, viewer,
+        boolean room = services.keeper().roomForAnotherShop(viewer);
+        toolbar(3, room, Icons.of(Material.ARMOR_STAND, "<white>Set up a shop here",
+                        "<gray>Your shopkeeper stands where you stand,", "<gray>facing your way.",
+                        "<gray>Costs " + Fees.format(Fees.amount(services.config().openingPrice())) + "."),
+                "You have as many shops as you may", click -> Lines.ask(services, viewer,
                         "shops.prompt.store-name", typed -> {
-                            Answer<Store> made = services.keeper().openStore(viewer, typed);
+                            Answer<Store> made = services.keeper().openShop(viewer, typed);
                             if (made.ok()) {
-                                services.messages().send(viewer, "shops.store.opened", "store", typed);
+                                services.messages().send(viewer, "shops.store.opened", "store", made.value().name());
                                 services.screens().storeManage(viewer, made.value());
                             } else {
                                 services.refuse(viewer, made.refusal());
@@ -95,7 +93,7 @@ public final class MyShopsMenu extends PaginatedMenu<Shop> implements IShopsScre
                         }, this::open));
         toolbar(5, Icons.of(Material.GOLD_INGOT, "<white>Your statement", "<gray>What your shops earned."),
                 click -> services.screens().statement(viewer));
-        toolbar(6, Icons.of(Material.SPYGLASS, "<white>Every shop", "<gray>The bazaar: everybody's shops."),
+        toolbar(6, Icons.of(Material.SPYGLASS, "<white>The bazaar", "<gray>Every offer in every shop."),
                 click -> services.screens().browse(viewer, "", de.raindancer.core.social.economy.TradeSide.BUY));
     }
 

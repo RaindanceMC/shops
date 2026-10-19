@@ -47,11 +47,22 @@ public final class ShopGuardListener implements IShopsListener {
         if (shop.isEmpty() || !services.locator().isShopBlock(event.getBlock())) {
             return;
         }
-        event.setCancelled(true);
         Player player = event.getPlayer();
-        boolean theirs = shop.get().isOwner(player.getUniqueId()) || player.hasPermission(PermissionNodes.ADMIN);
-        services.messages().send(player, theirs ? "shops.guard.close-first" : "shops.guard.not-yours",
-                "shop", shop.get().name());
+        boolean manager = services.book().managerOf(shop.get(), player.getUniqueId())
+                || player.hasPermission(PermissionNodes.ADMIN);
+        if (manager) {
+            // Their own stock chest: it stops being stock, and breaks as any chest does.
+            var unlinked = services.keeper().link(player, shop.get(), event.getBlock());
+            if (unlinked.ok()) {
+                services.messages().send(player, "shops.link.unlinked-broken", "shop", shop.get().name());
+                return;
+            }
+            event.setCancelled(true);
+            services.refuse(player, unlinked.refusal());
+            return;
+        }
+        event.setCancelled(true);
+        services.messages().send(player, "shops.guard.not-yours", "shop", shop.get().name());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -104,7 +115,7 @@ public final class ShopGuardListener implements IShopsListener {
         }
     }
 
-    /** A chest set beside a shop's chest joins it; only somebody who may stock the shop may do that. */
+    /** A chest set beside a stock chest joins it; only somebody who may stock the offer may do that. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
         Block placed = event.getBlockPlaced();
@@ -114,7 +125,7 @@ public final class ShopGuardListener implements IShopsListener {
         }
         for (BlockFace side : SIDES) {
             Optional<Shop> next = services.locator().shopAt(placed.getRelative(side));
-            if (next.isPresent() && !next.get().mayStock(event.getPlayer().getUniqueId())
+            if (next.isPresent() && !services.book().staffOf(next.get(), event.getPlayer().getUniqueId())
                     && !event.getPlayer().hasPermission(PermissionNodes.ADMIN)) {
                 event.setCancelled(true);
                 services.messages().send(event.getPlayer(), "shops.guard.not-beside", "shop", next.get().name());

@@ -6,11 +6,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 
 import java.util.UUID;
 
-/** At join: what happened at one's shops while away, a moment after the join lines. A loaded chunk: its displays. */
+/** At join: what happened at one's shops while away, a moment after the join lines. On leaving: linking ends. */
 public final class ShopSessionListener implements IShopsListener {
 
     private static final long SETTLE_TICKS = 60;
@@ -21,10 +20,10 @@ public final class ShopSessionListener implements IShopsListener {
         this.services = services;
     }
 
-    /** The container they clicked last is forgotten when they go; what waits for them lives in the database. */
+    /** Linking chests ends when they go; what waits for them lives in the database. */
     @Override
     public void forget(UUID player) {
-        services.recent().forget(player);
+        services.linking().stop(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -38,10 +37,5 @@ public final class ShopSessionListener implements IShopsListener {
         Scheduling.entityLater(services.plugin(), player, SETTLE_TICKS, () ->
                 services.notices().collect(player.getUniqueId(), waiting -> Scheduling.entity(services.plugin(),
                         player, () -> services.notices().summarise(player, waiting))));
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onChunk(ChunkLoadEvent event) {
-        services.displays().loaded(event.getChunk());
     }
 }

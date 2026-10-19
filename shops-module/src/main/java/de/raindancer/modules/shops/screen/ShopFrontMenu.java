@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A shop's counter: what it sells and buys, and a button for each way to trade — one bundle, a handful, as many as
+ * An offer's counter: what it sells and buys, and a button for each way to trade — one bundle, a handful, as many as
  * can be, or a number picked. Every button asks the trade desk what would happen first, so a trade that cannot be
  * made is greyed with the reason rather than refused after the click.
  */
@@ -34,7 +34,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
     private final Shop asked;
     private final Location via;
 
-    /** @param via the statue this was opened from, or null at the shop itself */
+    /** @param via where the shopkeeper this was opened at stands, or null from the bazaar */
     public ShopFrontMenu(ShopsServices services, Player viewer, Menu parent, Shop shop, Location via) {
         super(viewer, services.brand(), parent);
         this.services = services;
@@ -60,9 +60,11 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
     protected void render() {
         Shop shop = shop();
         List<String> about = new ArrayList<>(Lines.prices(shop));
-        about.add("<gray>From <white>" + Lines.plain(shop.ownerName()));
         services.book().store(shop.store()).ifPresent(store ->
-                about.add("<gray>Part of <white>" + Lines.plain(store.name())));
+                about.add("<gray>At <white>" + Lines.plain(store.name()) + " <gray>by " + Lines.plain(shop.ownerName())));
+        if (via == null) {
+            about.add("<gray>From the bazaar: it comes straight to you.");
+        }
         about.add(Lines.status(shop));
         about.add(Lines.rating(services.book().rating(shop.id())));
         band(MenuLayout.WHO, 4, Lines.ware(services, shop, "<white>" + Lines.plain(shop.ware().label()), about));
@@ -92,17 +94,17 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
                     click -> pick(shop, TradeSide.SELL, most));
         }
         band(MenuLayout.LAND, 3, Icons.of(Material.WRITABLE_BOOK, "<white>Reviews",
-                "<gray>What customers say about this shop.",
+                "<gray>What customers say about this offer.",
                 "<gray>Click to read them; write one from there."), click ->
                 services.reviews().read(viewer, shop, reviews ->
                         new ShopReviewsMenu(services, viewer, this, shop, reviews).open()));
         services.book().store(shop.store()).ifPresent(store ->
                 band(MenuLayout.LAND, 5, Icons.head(shop.owner(), "<white>" + Lines.plain(store.name()),
-                                "<gray>Everything else " + Lines.plain(shop.ownerName()) + " sells here."),
+                                "<gray>Everything else this shop offers."),
                         click -> new StoreMenu(services, viewer, this, store, via).open()));
-        if (shop.mayStock(viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
+        if (services.book().managerOf(shop, viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
             toolbar(4, Icons.of(Material.COMPARATOR, "<white>The back room",
-                            "<gray>Prices, staff, the log — your side of the counter."),
+                            "<gray>Prices, chests, the log — your side of the counter."),
                     click -> new ShopManageMenu(services, viewer, this, shop).open());
         }
     }

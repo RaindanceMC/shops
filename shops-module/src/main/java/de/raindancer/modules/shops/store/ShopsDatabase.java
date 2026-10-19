@@ -4,7 +4,9 @@ import de.raindancer.core.data.sql.Schema;
 
 /**
  * The shape of {@code shops.db} — the network's one, every server reading all of it and writing only the rows of its
- * own shops. Steps are only ever appended to; see {@link Schema}.
+ * own shops. Steps are only ever appended to; see {@link Schema}. Since 0.2.0 the shops are {@code player_shop} with
+ * one {@code shopkeeper}, their offers {@code offer} with {@code offer_chest}; {@code shop}, {@code store} and
+ * {@code statue} are the 0.1 shops, kept as history.
  */
 public final class ShopsDatabase {
 
@@ -45,7 +47,30 @@ public final class ShopsDatabase {
             "CREATE TABLE statue (entity TEXT PRIMARY KEY, store TEXT NOT NULL, server TEXT NOT NULL, "
                     + "world TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, "
                     + "yaw DOUBLE NOT NULL, placed BIGINT NOT NULL)",
-            "CREATE INDEX statue_store ON statue (store)");
+            "CREATE INDEX statue_store ON statue (store)",
+            // 0.2.0: player-operated shops. The tables above stay as the 0.1 shops' history; OldShops closes them.
+            "CREATE TABLE player_shop (id TEXT PRIMARY KEY, owner TEXT NOT NULL, owner_name TEXT NOT NULL, "
+                    + "name TEXT NOT NULL, motto TEXT NOT NULL, created BIGINT NOT NULL)",
+            "CREATE INDEX player_shop_owner ON player_shop (owner)",
+            "CREATE TABLE player_shop_staff (shop TEXT NOT NULL, player TEXT NOT NULL, role TEXT NOT NULL, "
+                    + "PRIMARY KEY (shop, player))",
+            "CREATE TABLE shopkeeper (shop TEXT PRIMARY KEY, entity TEXT NOT NULL, server TEXT NOT NULL, "
+                    + "world TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, "
+                    + "yaw DOUBLE NOT NULL, placed BIGINT NOT NULL)",
+            "CREATE TABLE offer (id TEXT PRIMARY KEY, shop TEXT NOT NULL, server TEXT NOT NULL, world TEXT NOT NULL, "
+                    + "x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, "
+                    + "owner TEXT NOT NULL, owner_name TEXT NOT NULL, name TEXT NOT NULL, "
+                    + "material TEXT NOT NULL, ware TEXT NOT NULL, label TEXT NOT NULL, "
+                    + "buy BIGINT NOT NULL, sell BIGINT NOT NULL, bundle INTEGER NOT NULL, "
+                    + "status TEXT NOT NULL, created BIGINT NOT NULL, rent_paid_to BIGINT NOT NULL DEFAULT 0, "
+                    + "buy_limit INTEGER NOT NULL DEFAULT 0, low_stock INTEGER NOT NULL DEFAULT 0, "
+                    + "stock INTEGER NOT NULL DEFAULT 0, room INTEGER NOT NULL DEFAULT 0, sales BIGINT NOT NULL DEFAULT 0)",
+            "CREATE INDEX offer_shop ON offer (shop)",
+            "CREATE INDEX offer_server ON offer (server)",
+            "CREATE TABLE offer_chest (spot TEXT PRIMARY KEY, offer TEXT NOT NULL, server TEXT NOT NULL, "
+                    + "world TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, "
+                    + "position INTEGER NOT NULL)",
+            "CREATE INDEX offer_chest_offer ON offer_chest (offer)");
 
     private ShopsDatabase() {
     }
