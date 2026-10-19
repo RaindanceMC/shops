@@ -71,7 +71,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.1.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.1.1")
             .describedAs("Players' own shops: chests and barrels that sell and buy, stores with statues of their "
                     + "owners, a server-wide bazaar, reviews and statements")
             .by("Raindancer118");
@@ -136,7 +136,8 @@ public final class ShopsModule implements FlexModule {
 
         LiveScreens screens = new LiveScreens();
         ShopsServices services = new ShopsServices(context.plugin(), server, context.core(), log,
-                context.core().messages(), context.chat().brand(), settings::current, settings, book, locator, wares,
+                context.core().messages(), context.chat().brand(), settings::current, settings, book, locator,
+                new de.raindancer.modules.shops.service.RecentContainers(), wares,
                 keeper, trades, notices, reviews, going, displays, statues, screens);
         screens.services = services;
 

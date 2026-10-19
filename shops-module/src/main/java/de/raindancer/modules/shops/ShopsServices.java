@@ -42,6 +42,7 @@ public record ShopsServices(
         SettingsStore<ShopsSettings> store,
         ShopBook book,
         ShopLocator locator,
+        de.raindancer.modules.shops.service.RecentContainers recent,
         Wares wares,
         ShopKeeper keeper,
         ShopTrades trades,

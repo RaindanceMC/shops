@@ -21,9 +21,15 @@ public final class ShopSessionListener implements IShopsListener {
         this.services = services;
     }
 
+    /** The container they clicked last is forgotten when they go; what waits for them lives in the database. */
     @Override
     public void forget(UUID player) {
-        // Remembers nobody: what waits for a player lives in the database.
+        services.recent().forget(player);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        forget(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

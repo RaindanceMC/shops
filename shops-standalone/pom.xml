@@ -24,7 +24,9 @@
         <plugin.name>RainsShops</plugin.name>
         <!-- 0.1.0: players' own shops — chests and barrels that sell and buy, a server-wide browser, reviews,
              statements, rent and a server cut. -->
-        <plugin.version>0.1.0</plugin.version>
+        <!-- 0.1.1: /bazaar create and the other "this shop" commands also take the container clicked within the last
+             minute, not only the one looked at exactly. -->
+        <plugin.version>0.1.1</plugin.version>
     </properties>
 
     <dependencies>

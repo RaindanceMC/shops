@@ -10,7 +10,7 @@ shops:
   trusted: "<green><white><player></white> now helps at <white><shop></white>."
   untrusted: "<gray><white><player></white> no longer helps at <white><shop></white>."
   how-to-open: "<gray>Look at a chest or barrel, hold what it should sell and type <white>/bazaar create <price></white> — or write <white>[shop]</white> on a sign on it."
-  look-at-container: "<red>Look at a chest or barrel first. Staring at the sky sells nothing."
+  look-at-container: "<red>Look at a chest or barrel first — or click it, then type the command. Staring at the sky sells nothing."
   look-at-shop: "<red>Look at a shop first — that one is just a box."
   info: "<gold><shop></gold> <gray>by <white><owner></white>: <white><bundle>× <ware></white><newline><gray>Sells for <gold><buy></gold>, buys for <gold><sell></gold> · <white><stock></white> in stock"
   create:

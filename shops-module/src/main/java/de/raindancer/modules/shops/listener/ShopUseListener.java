@@ -41,6 +41,10 @@ public final class ShopUseListener implements IShopsListener {
         if (block == null) {
             return;
         }
+        if (block.getState(false) instanceof org.bukkit.block.Container) {
+            services.recent().clicked(event.getPlayer().getUniqueId(), services.locator().spotOf(block),
+                    System.currentTimeMillis());
+        }
         Optional<Shop> found = services.locator().shopAt(block);
         if (found.isEmpty()) {
             return;

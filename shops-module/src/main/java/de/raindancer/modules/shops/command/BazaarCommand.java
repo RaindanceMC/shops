@@ -44,6 +44,9 @@ public final class BazaarCommand implements IShopsCommand {
     /** How far a player may be looking at a container they mean. */
     private static final int LOOK = 6;
 
+    /** How near a container clicked a moment ago must still be. */
+    private static final int NEAR = 8;
+
     private final Supplier<ShopsServices> services;
 
     public BazaarCommand(Supplier<ShopsServices> services) {
@@ -86,7 +89,7 @@ public final class BazaarCommand implements IShopsCommand {
     }
 
     private static void create(ShopsServices live, Player player, String[] args) {
-        Block block = player.getTargetBlockExact(LOOK);
+        Block block = targeted(live, player);
         if (block == null) {
             live.messages().send(player, "shops.look-at-container");
             return;
@@ -192,8 +195,26 @@ public final class BazaarCommand implements IShopsCommand {
         }
     }
 
+    /**
+     * The container the player looks at, or else the one they clicked within the last minute and still stand near —
+     * aiming exactly is hard from a phone or a controller.
+     */
+    private static Block targeted(ShopsServices live, Player player) {
+        Block looked = player.getTargetBlockExact(LOOK);
+        if (looked != null && (looked.getState(false) instanceof Container
+                || live.locator().shopAt(looked).isPresent())) {
+            return looked;
+        }
+        return live.recent().of(player.getUniqueId(), System.currentTimeMillis())
+                .flatMap(live.locator()::location)
+                .filter(at -> at.getWorld().equals(player.getWorld())
+                        && at.distanceSquared(player.getLocation()) <= NEAR * NEAR)
+                .map(org.bukkit.Location::getBlock)
+                .orElse(looked);
+    }
+
     private static Optional<Shop> looked(ShopsServices live, Player player) {
-        Block block = player.getTargetBlockExact(LOOK);
+        Block block = targeted(live, player);
         Optional<Shop> shop = block == null ? Optional.empty() : live.locator().shopAt(block);
         if (shop.isEmpty()) {
             live.messages().send(player, "shops.look-at-shop");
