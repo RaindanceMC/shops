@@ -3,6 +3,7 @@ shops:
   only-a-player: "<red>A console with a shop. Bold. Players only, though."
   no-such-player: "<red>Nobody called <white><player></white> has ever set foot here."
   changed: "<green>Done. Capitalism thanks you."
+  broke: "<red>That went wrong on our side, not yours. Staff can see what happened in the log."
   opened: "<green>Open for business: <white><shop></white>, selling <white><ware></white>. Try not to go bankrupt."
   opened-unpriced: "<yellow><white><shop></white> exists, but it gives nothing away for free — set a price in the back room, then open it."
   removed: "<gray><white><shop></white> is just a container again. Its stock stays put."

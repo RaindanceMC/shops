@@ -56,6 +56,16 @@ public final class BazaarCommand implements IShopsCommand {
     @Override
     public void execute(CommandSourceStack source, String[] args) {
         ShopsServices live = services.get();
+        try {
+            run(live, source, args);
+        } catch (RuntimeException | LinkageError broken) {
+            live.log().error(broken, "/bazaar {} by {} failed: {}", String.join(" ", args),
+                    source.getSender().getName(), broken.toString());
+            live.messages().send(source.getSender(), "shops.broke");
+        }
+    }
+
+    private void run(ShopsServices live, CommandSourceStack source, String[] args) {
         CommandSender sender = source.getSender();
         if (!(sender instanceof Player player)) {
             live.messages().send(sender, "shops.only-a-player");
@@ -109,6 +119,8 @@ public final class BazaarCommand implements IShopsCommand {
         }
         Answer<Shop> opened = live.keeper().open(player, block, ware, new Prices(buy, sell, bundle), name, null);
         if (!opened.ok()) {
+            live.log().info("{} could not open a shop at {} {} {}: {}", player.getName(), block.getX(), block.getY(),
+                    block.getZ(), opened.refusal());
             live.refuse(player, opened.refusal());
             return;
         }

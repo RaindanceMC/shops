@@ -26,7 +26,8 @@
              statements, rent and a server cut. -->
         <!-- 0.1.1: /bazaar create and the other "this shop" commands also take the container clicked within the last
              minute, not only the one looked at exactly. -->
-        <plugin.version>0.1.1</plugin.version>
+        <!-- 0.1.2: a /bazaar that fails says so and logs why; a refused shop opening is logged with its reason. -->
+        <plugin.version>0.1.2</plugin.version>
     </properties>
 
     <dependencies>
