@@ -71,4 +71,19 @@ class OfferAndShopTest {
         assertThat(offer.nameStyle()).isEqualTo(gold);
         assertThat(offer().nameStyle()).isEqualTo(de.raindancer.core.ui.text.NameStyle.NONE);
     }
+
+    @Test
+    @DisplayName("an offer read before its item had a name of its own takes it: the label, and a name that was the label")
+    void relabelled() {
+        Shop shard = Shop.open(UUID.randomUUID(), UUID.randomUUID(), ALICE, "Alice", null, KEEPER,
+                new Ware("ECHO_SHARD", "enc", "Echo Shard"), Prices.selling(Money.of(100), 1), 0, 0);
+        assertThat(shard.name()).isEqualTo("Echo Shard");
+        Shop better = shard.relabelled("Thor Shard");
+        assertThat(better.ware().label()).isEqualTo("Thor Shard");
+        assertThat(better.ware().encoded()).isEqualTo("enc");
+        assertThat(better.name()).isEqualTo("Thor Shard");
+        Shop named = shard.withName("Lightning in a jar").relabelled("Thor Shard");
+        assertThat(named.name()).as("a name its owner gave stays").isEqualTo("Lightning in a jar");
+        assertThat(shard.relabelled("Echo Shard")).isSameAs(shard);
+    }
 }

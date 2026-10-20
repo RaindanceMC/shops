@@ -73,7 +73,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.3.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.3.1")
             .describedAs("Players' own shops: shopkeepers with their owners' skin selling from linked stock chests, "
                     + "a server-wide bazaar to trade from afar, reviews and statements")
             .by("Raindancer118");
@@ -178,6 +178,10 @@ public final class ShopsModule implements FlexModule {
                 log.info("Forgot {} old trade(s) and {} old notice(s).", trades0, notices0);
             }
         })));
+        int relabelled = keeper.relabelAll();
+        if (relabelled > 0) {
+            log.info("{} offer(s) now named after what they sell.", relabelled);
+        }
         // Shopkeepers loaded before the listener was — and the 0.1 statues among them, which go.
         Scheduling.globalLater(context.plugin(), 20, keepers::sweepLoaded);
         // The shops from before 0.2.0, once: closed, their owners told and their rent paid ahead given back.

@@ -130,4 +130,16 @@ public record Shop(UUID id, UUID store, UUID owner, String ownerName, String nam
         return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
                 buyLimit, lowStockAt, changed);
     }
+
+    /**
+     * The same offer with its item called {@code label} — read again from the item itself. A name that was only the
+     * old label follows; a name the owner gave stays.
+     */
+    public Shop relabelled(String label) {
+        if (label == null || label.isBlank() || label.equals(ware.label())) {
+            return this;
+        }
+        Shop renamed = withWare(new Ware(ware.material(), ware.encoded(), label));
+        return name.equals(ware.label()) ? renamed.withName(label) : renamed;
+    }
 }

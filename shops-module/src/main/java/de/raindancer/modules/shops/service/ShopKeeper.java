@@ -383,6 +383,28 @@ public final class ShopKeeper implements IShopsService {
         return Answer.done(now);
     }
 
+    /**
+     * Every offer here whose item reads better now than when it was saved — an enchant shard saved as "Echo Shard"
+     * before Core read items' own names — takes the better label. At start, on the server thread.
+     *
+     * @return how many changed
+     */
+    public int relabelAll() {
+        int changed = 0;
+        for (Shop offer : book.index().all()) {
+            Optional<ItemStack> item = wares.item(offer.ware());
+            if (item.isEmpty()) {
+                continue;
+            }
+            Shop better = offer.relabelled(wares.of(item.get()).label());
+            if (better != offer) {
+                book.saveShop(better);
+                changed++;
+            }
+        }
+        return changed;
+    }
+
     // ------------------------------------------------------------------ rent
 
     public Money weeklyRent() {
