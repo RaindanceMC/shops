@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.listener;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Shop;
+import de.raindancer.modules.shops.rules.ChestClickRule;
 import de.raindancer.modules.shops.rules.LinkRule;
 import de.raindancer.modules.shops.util.PermissionNodes;
 import org.bukkit.block.Block;
@@ -21,12 +22,13 @@ import java.util.UUID;
 
 /**
  * Clicking a container. While linking, a click links the chest to the offer or unlinks it. Otherwise a stock chest is
- * the shop's back room: its staff open it to stock it (sneaking managers get the offer's settings instead), and a
- * customer is sent to the shopkeeper.
+ * the shop's back room: its staff open it to stock it (managers sneaking with an empty hand get the offer's settings;
+ * with something in hand it is placed as usual), and a customer is sent to the shopkeeper.
  */
 public final class ShopUseListener implements IShopsListener {
 
     private final ShopsServices services;
+    private final ChestClickRule clicks = new ChestClickRule();
 
     public ShopUseListener(ShopsServices services) {
         this.services = services;
@@ -74,18 +76,23 @@ public final class ShopUseListener implements IShopsListener {
             }
             return;
         }
-        if (staff && player.isSneaking() && (services.book().managerOf(shop, player.getUniqueId())
-                || player.hasPermission(PermissionNodes.ADMIN))) {
-            event.setCancelled(true);
-            services.screens().manage(player, shop);
-            return;
+        boolean manager = services.book().managerOf(shop, player.getUniqueId())
+                || player.hasPermission(PermissionNodes.ADMIN);
+        switch (clicks.decide(staff, manager, player.isSneaking(),
+                player.getInventory().getItemInMainHand().getType().isAir())) {
+            case BACK_ROOM -> {
+                event.setCancelled(true);
+                services.screens().manage(player, shop);
+                return;
+            }
+            case AS_THE_GAME_DOES -> {
+                // Stocking it, or putting a frame or a sign on it: the chest is the staff's to use as any chest.
+                return;
+            }
+            case TO_THE_SHOPKEEPER -> event.setCancelled(true);
         }
-        if (staff) {
-            // Stocking: the chest opens as any chest does.
-            return;
-        }
-        event.setCancelled(true);
-        String store = services.book().store(shop.store()).map(de.raindancer.modules.shops.model.Store::name).orElse(shop.ownerName());
+        String store = services.book().store(shop.store()).map(de.raindancer.modules.shops.model.Store::name)
+                .orElse(shop.ownerName());
         services.messages().send(player, "shops.stock-chest", "shop", store, "owner", shop.ownerName());
     }
 

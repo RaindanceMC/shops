@@ -15,7 +15,7 @@ Needs Java 25 and read access to `packages.tstieh.de` (server ids `packages-rele
 
 ## Plugins
 
-- `shops-standalone/target/RainsShops-0.3.1.jar` — also published as `de.raindancer.modules:shops-standalone:0.3.1`
+- `shops-standalone/target/RainsShops-0.3.2.jar` — also published as `de.raindancer.modules:shops-standalone:0.3.2`
 
 ## Versions
 

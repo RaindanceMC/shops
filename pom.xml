@@ -20,7 +20,7 @@
 
     <!-- This repository's own versions: bump them here. CI publishes a new version on the next push to master. -->
     <properties>
-        <shops-module.version>0.3.1</shops-module.version>
+        <shops-module.version>0.3.2</shops-module.version>
     </properties>
 
     <modules>
