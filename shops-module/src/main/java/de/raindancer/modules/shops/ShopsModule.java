@@ -27,8 +27,8 @@ import de.raindancer.modules.shops.screen.StoreManageMenu;
 import de.raindancer.modules.shops.screen.StoreMenu;
 import de.raindancer.modules.shops.service.EconomyTill;
 import de.raindancer.modules.shops.service.Linking;
-import de.raindancer.modules.shops.service.OldShopClosing;
 import de.raindancer.modules.shops.service.NoticeService;
+import de.raindancer.modules.shops.service.OldShopClosing;
 import de.raindancer.modules.shops.service.ReviewService;
 import de.raindancer.modules.shops.service.ShopBook;
 import de.raindancer.modules.shops.service.ShopKeeper;
@@ -73,7 +73,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.2.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.3.0")
             .describedAs("Players' own shops: shopkeepers with their owners' skin selling from linked stock chests, "
                     + "a server-wide bazaar to trade from afar, reviews and statements")
             .by("Raindancer118");
@@ -81,7 +81,6 @@ public final class ShopsModule implements FlexModule {
     private LogChannel log;
     private ShopWriter writer;
     private Travel travel;
-    private ShopTrades trades;
     private final List<ScheduledTask> timers = new ArrayList<>();
 
     @Override
@@ -130,7 +129,7 @@ public final class ShopsModule implements FlexModule {
         EconomyTill till = new EconomyTill();
         TradeDesk desk = new TradeDesk(till, new ShopLocks(), now,
                 ShopTrades.afterwards(book, notices, changed -> { }), clock, book::staffOf);
-        trades = new ShopTrades(context.plugin(), book, locator, wares, desk, notices, now, clock);
+        ShopTrades trades = new ShopTrades(context.core().chunks(), book, locator, wares, desk, notices, now, clock);
         ReviewService reviews = new ReviewService(context.plugin(), book, notices, now, clock);
         travel = new Travel(context.plugin(), context.core().safety(), context.core().audit());
         ShopTravel going = new ShopTravel(context.plugin(), travel, context.core().land(), context.core().messages(),
@@ -181,8 +180,6 @@ public final class ShopsModule implements FlexModule {
         })));
         // Shopkeepers loaded before the listener was — and the 0.1 statues among them, which go.
         Scheduling.globalLater(context.plugin(), 20, keepers::sweepLoaded);
-        // Chunks a bazaar trade loaded are let go a minute after the trade.
-        timers.add(Scheduling.globalTimer(context.plugin(), 20L * 20, 20L * 20, task -> trades.releaseHeld()));
         // The shops from before 0.2.0, once: closed, their owners told and their rent paid ahead given back.
         OldShopClosing closing = new OldShopClosing(new OldShops(database), till, notices, keeper::weeklyRent,
                 context.core()::serverName, clock, log);
@@ -249,9 +246,6 @@ public final class ShopsModule implements FlexModule {
         ShopsCommands.stopped();
         timers.forEach(ScheduledTask::cancel);
         timers.clear();
-        if (trades != null) {
-            trades.releaseAll();
-        }
         if (travel != null) {
             travel.clear();
         }

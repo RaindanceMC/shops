@@ -4,6 +4,9 @@ import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
+import de.raindancer.core.ui.prompt.AnvilInput;
+import de.raindancer.core.ui.prompt.Parsers;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Store;
@@ -62,10 +65,10 @@ public final class MyShopsMenu extends PaginatedMenu<Store> implements IShopsScr
         lore.add("<gray>" + offers + " offer" + (offers == 1 ? "" : "s"));
         lore.add("<gray>" + store.staff().size() + " helping");
         services.book().keeperOf(store.id()).ifPresent(keeper -> lore.add("<dark_gray>Shopkeeper at "
-                + Lines.plain(keeper.spot().describe()) + " on " + Lines.plain(keeper.spot().server())));
+                + Text.literal(keeper.spot().describe()) + " on " + Text.literal(keeper.spot().server())));
         lore.add("");
         lore.add("<yellow>Click to look after it");
-        return Icons.head(store.owner(), "<gold>" + Lines.plain(store.name()), lore);
+        return Icons.head(store.owner(), Lines.named(store.name(), store.nameStyle(), "<gold>"), lore);
     }
 
     @Override
@@ -80,8 +83,8 @@ public final class MyShopsMenu extends PaginatedMenu<Store> implements IShopsScr
         toolbar(3, room, Icons.of(Material.ARMOR_STAND, "<white>Set up a shop here",
                         "<gray>Your shopkeeper stands where you stand,", "<gray>facing your way.",
                         "<gray>Costs " + Fees.format(Fees.amount(services.config().openingPrice())) + "."),
-                "You have as many shops as you may", click -> Lines.ask(services, viewer,
-                        "shops.prompt.store-name", typed -> {
+                "You have as many shops as you may", click -> AnvilInput.open(viewer, "Name your shop",
+                        viewer.getName() + "'s Shop", Parsers.text(services.config().nameLimit()), typed -> {
                             Answer<Store> made = services.keeper().openShop(viewer, typed);
                             if (made.ok()) {
                                 services.messages().send(viewer, "shops.store.opened", "store", made.value().name());

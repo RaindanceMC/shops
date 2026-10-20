@@ -56,7 +56,9 @@ class StoresTest {
     @DisplayName("an offer comes back exactly as saved, chests and all; saving again replaces it")
     void shops() {
         ShopStore store = new ShopStore(database);
-        Shop saved = shop("Depot", "survival", 1).linked(new Spot("survival", "world", 3, 64, 0))
+        Shop saved = shop("Depot", "survival", 1).withNameStyle(new de.raindancer.core.ui.text.NameStyle(
+                        List.of(net.kyori.adventure.text.format.NamedTextColor.AQUA), java.util.Set.of()))
+                .linked(new Spot("survival", "world", 3, 64, 0))
                 .linked(new Spot("survival", "world", 4, 64, 0))
                 .withBuyLimit(256).withLowStockAt(8).withStatus(Status.PAUSED)
                 .withRentPaidTo(99_000);
@@ -179,10 +181,18 @@ class StoresTest {
                 ALICE, "Alice", "Farm", "", 6, java.util.Map.of());
         stores.save(smithy);
         stores.save(farm);
-        stores.save(smithy.withMotto("Sharper things").withStaff(CAROL, null));
+        de.raindancer.core.ui.text.NameStyle gold = new de.raindancer.core.ui.text.NameStyle(
+                List.of(net.kyori.adventure.text.format.NamedTextColor.GOLD,
+                        net.kyori.adventure.text.format.NamedTextColor.YELLOW),
+                java.util.Set.of(net.kyori.adventure.text.format.TextDecoration.BOLD));
+        stores.save(smithy.withMotto("Sharper things").withStaff(CAROL, null).withNameStyle(gold)
+                .withMottoStyle(gold));
         assertThat(stores.all()).extracting(de.raindancer.modules.shops.model.Store::motto)
                 .containsExactly("Sharper things", "");
         assertThat(stores.all().get(0).staff()).containsOnlyKeys(BOB);
+        assertThat(stores.all().get(0).nameStyle()).isEqualTo(gold);
+        assertThat(stores.all().get(0).mottoStyle()).isEqualTo(gold);
+        assertThat(stores.all().get(1).nameStyle()).isEqualTo(de.raindancer.core.ui.text.NameStyle.NONE);
 
         de.raindancer.modules.shops.model.Statue keeper = new de.raindancer.modules.shops.model.Statue(
                 UUID.randomUUID(), STORE, new Spot("survival", "world", 3, 70, -2), 90f, 7);

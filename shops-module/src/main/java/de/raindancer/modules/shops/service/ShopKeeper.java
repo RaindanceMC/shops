@@ -276,7 +276,7 @@ public final class ShopKeeper implements IShopsService {
         Spot chest = locator.spotOf(block);
         Spot keeper = now.spot();
         boolean container = block.getState(false) instanceof Container
-                && placement.mayBeShop(block.getType().name(), placement.allowed(settings.containers()));
+                && placement.mayBeShop(block.getType().name(), placement.names(settings.containers()));
         UUID linkedTo = locator.shopAt(block).filter(found -> found.isLinked(chest)).map(Shop::id).orElse(null);
         UUID partner = locator.partnerShop(block).map(Shop::id).orElse(null);
         boolean sameWorld = chest.isOn(keeper.server()) && chest.world().equals(keeper.world());

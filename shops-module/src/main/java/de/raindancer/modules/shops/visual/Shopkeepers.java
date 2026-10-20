@@ -67,7 +67,7 @@ public final class Shopkeepers implements IShopsService {
 
     /** Whether a shopkeeper may stand where the player stands. Places nothing. */
     public Optional<Refusal> mayStandHere(Player by) {
-        if (!placement.worldAllowed(by.getWorld().getName(), placement.allowed(settings.closedWorlds()))) {
+        if (!placement.worldAllowed(by.getWorld().getName(), placement.names(settings.closedWorlds()))) {
             return Optional.of(Refusal.WORLD_NOT_ALLOWED);
         }
         if (!by.hasPermission(PermissionNodes.ADMIN) && !land.can(by, by.getLocation(), LandAction.BUILD)) {
@@ -179,13 +179,20 @@ public final class Shopkeepers implements IShopsService {
         keeper.setProfile(look(store));
     }
 
+    /** The shop's name over its head, painted in the shop's style when it has one — Core's Gradients. */
     private Component name(Store store) {
-        return messages.get("shops.keeper.name", "store", store.name(), "owner", store.ownerName());
+        return messages.get("shops.keeper.name", "store", painted(store.name(), store.nameStyle()),
+                "owner", store.ownerName());
     }
 
     private Component motto(Store store) {
         return store.motto().isEmpty() ? messages.get("shops.keeper.no-motto")
-                : messages.get("shops.keeper.motto", "motto", store.motto());
+                : messages.get("shops.keeper.motto", "motto", painted(store.motto(), store.mottoStyle()));
+    }
+
+    /** Text as it is, or painted: a component is put in as it is, never read as markup. */
+    private static Object painted(String text, de.raindancer.core.ui.text.NameStyle style) {
+        return style.isEmpty() ? text : de.raindancer.core.ui.text.Gradients.styled(text, style);
     }
 
     /** The owner's own skin, found by their id — a renamed player keeps their shopkeeper's face. */

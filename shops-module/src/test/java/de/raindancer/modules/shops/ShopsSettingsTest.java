@@ -57,7 +57,9 @@ class ShopsSettingsTest {
         assertThat(defaults.offerLimit()).isEqualTo(27);
         assertThat(defaults.chestLimit()).isEqualTo(12);
         assertThat(defaults.reach()).isEqualTo(24);
-        assertThat(defaults.containers()).contains("CHEST").contains("BARREL").doesNotContain("SHULKER");
+        assertThat(defaults.containers()).contains("CHEST", "BARREL").noneMatch(name -> name.contains("SHULKER"));
+        assertThat(defaults.closedWorlds()).isEmpty();
+        assertThat(defaults.styledNames()).isTrue();
         assertThat(defaults.partialTrades()).isTrue();
         assertThat(defaults.hoppersFillShops()).isTrue();
         assertThat(defaults.remoteTrades()).isTrue();

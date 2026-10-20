@@ -1,6 +1,7 @@
 package de.raindancer.modules.shops.rules;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -13,14 +14,14 @@ public final class PlacementRule implements IShopsRule {
      */
     private static final Set<String> NEVER = Set.of("ENDER_CHEST");
 
-    /** A comma-separated list as a set of upper-case names. */
-    public Set<String> allowed(String written) {
+    /** A setting's list as a set of upper-case names, blanks left out. */
+    public Set<String> names(List<String> listed) {
         Set<String> names = new LinkedHashSet<>();
-        if (written == null) {
+        if (listed == null) {
             return names;
         }
-        for (String part : written.split(",")) {
-            String name = part.strip().toUpperCase(Locale.ROOT);
+        for (String part : listed) {
+            String name = part == null ? "" : part.strip().toUpperCase(Locale.ROOT);
             if (!name.isEmpty()) {
                 names.add(name);
             }

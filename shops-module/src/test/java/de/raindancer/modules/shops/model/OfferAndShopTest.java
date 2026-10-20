@@ -56,4 +56,19 @@ class OfferAndShopTest {
         assertThat(shop.mayStock(UUID.randomUUID())).isFalse();
         assertThat(shop.withStaff(BOB, null).mayStock(BOB)).isFalse();
     }
+
+    @Test
+    @DisplayName("names wear a style — colours, a gradient, bold — kept through every other change")
+    void styles() {
+        de.raindancer.core.ui.text.NameStyle gold = new de.raindancer.core.ui.text.NameStyle(
+                java.util.List.of(net.kyori.adventure.text.format.NamedTextColor.GOLD,
+                        net.kyori.adventure.text.format.NamedTextColor.YELLOW), java.util.Set.of());
+        Store shop = new Store(UUID.randomUUID(), ALICE, "Alice", "Gems", "", 0, Map.of())
+                .withNameStyle(gold).withMottoStyle(gold).withName("Gem Corner").withStaff(BOB, Role.CLERK);
+        assertThat(shop.nameStyle()).isEqualTo(gold);
+        assertThat(shop.mottoStyle()).isEqualTo(gold);
+        Shop offer = offer().withNameStyle(gold).withName("Shiny").linked(KEEPER.offset(1, 0, 0));
+        assertThat(offer.nameStyle()).isEqualTo(gold);
+        assertThat(offer().nameStyle()).isEqualTo(de.raindancer.core.ui.text.NameStyle.NONE);
+    }
 }

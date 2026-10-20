@@ -1,5 +1,7 @@
 package de.raindancer.modules.shops.model;
 
+import de.raindancer.core.ui.text.NameStyle;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -17,10 +19,11 @@ import java.util.UUID;
  * @param rentPaidTo epoch millis the rent is paid until; 0 when this offer pays no rent
  * @param buyLimit   the most items the chests hold before the offer stops buying more; 0 is "as many as fit"
  * @param lowStockAt items left at which the owner is told the offer is running out; 0 never
+ * @param nameStyle  how its name is painted — Core's {@link NameStyle}
  */
 public record Shop(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, List<Spot> chests,
                    Ware ware, Prices prices, Status status, long createdAt, long rentPaidTo, int buyLimit,
-                   int lowStockAt) {
+                   int lowStockAt, NameStyle nameStyle) {
 
     public Shop {
         ownerName = ownerName == null ? "" : ownerName;
@@ -29,12 +32,21 @@ public record Shop(UUID id, UUID store, UUID owner, String ownerName, String nam
         status = status == null ? Status.OPEN : status;
         buyLimit = Math.max(0, buyLimit);
         lowStockAt = Math.max(0, lowStockAt);
+        nameStyle = nameStyle == null ? NameStyle.NONE : nameStyle;
+    }
+
+    /** An offer with a plain name. */
+    public Shop(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, List<Spot> chests,
+                Ware ware, Prices prices, Status status, long createdAt, long rentPaidTo, int buyLimit,
+                int lowStockAt) {
+        this(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo, buyLimit,
+                lowStockAt, NameStyle.NONE);
     }
 
     public static Shop open(UUID id, UUID store, UUID owner, String ownerName, String name, Spot spot, Ware ware,
                             Prices prices, long now, long rentPaidTo) {
         return new Shop(id, store, owner, ownerName, name, spot, List.of(), ware, prices, Status.OPEN, now,
-                rentPaidTo, 0, 0);
+                rentPaidTo, 0, 0, NameStyle.NONE);
     }
 
     public boolean isOwner(UUID who) {
@@ -66,51 +78,56 @@ public record Shop(UUID id, UUID store, UUID owner, String ownerName, String nam
 
     public Shop withChests(List<Spot> changed) {
         return new Shop(id, store, owner, ownerName, name, spot, changed, ware, prices, status, createdAt, rentPaidTo,
-                buyLimit, lowStockAt);
+                buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withSpot(Spot changed) {
         return new Shop(id, store, owner, ownerName, name, changed, chests, ware, prices, status, createdAt,
-                rentPaidTo, buyLimit, lowStockAt);
+                rentPaidTo, buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withPrices(Prices changed) {
         return new Shop(id, store, owner, ownerName, name, spot, chests, ware, changed, status, createdAt, rentPaidTo,
-                buyLimit, lowStockAt);
+                buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withStatus(Status changed) {
         return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, changed, createdAt, rentPaidTo,
-                buyLimit, lowStockAt);
+                buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withName(String changed) {
         return new Shop(id, store, owner, ownerName, changed, spot, chests, ware, prices, status, createdAt,
-                rentPaidTo, buyLimit, lowStockAt);
+                rentPaidTo, buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withWare(Ware changed) {
         return new Shop(id, store, owner, ownerName, name, spot, chests, changed, prices, status, createdAt,
-                rentPaidTo, buyLimit, lowStockAt);
+                rentPaidTo, buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withRentPaidTo(long paidTo) {
         return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, paidTo,
-                buyLimit, lowStockAt);
+                buyLimit, lowStockAt, nameStyle);
     }
 
     public Shop withBuyLimit(int limit) {
         return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
-                limit, lowStockAt);
+                limit, lowStockAt, nameStyle);
     }
 
     public Shop withLowStockAt(int items) {
         return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
-                buyLimit, items);
+                buyLimit, items, nameStyle);
     }
 
     public Shop withOwnerName(String changed) {
         return new Shop(id, store, owner, changed, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
-                buyLimit, lowStockAt);
+                buyLimit, lowStockAt, nameStyle);
+    }
+
+    public Shop withNameStyle(NameStyle changed) {
+        return new Shop(id, store, owner, ownerName, name, spot, chests, ware, prices, status, createdAt, rentPaidTo,
+                buyLimit, lowStockAt, changed);
     }
 }

@@ -1,6 +1,7 @@
 package de.raindancer.modules.shops.store;
 
 import de.raindancer.core.data.sql.Database;
+import de.raindancer.core.ui.text.NameStyle;
 import de.raindancer.modules.shops.model.Role;
 import de.raindancer.modules.shops.model.Spot;
 import de.raindancer.modules.shops.model.Statue;
@@ -32,15 +33,19 @@ public final class StoreStore {
     public boolean save(Store store) {
         return database.write(connection -> {
             try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO player_shop (id, owner, owner_name, name, motto, created) VALUES (?,?,?,?,?,?) "
+                    "INSERT INTO player_shop (id, owner, owner_name, name, motto, created, name_style, motto_style) "
+                            + "VALUES (?,?,?,?,?,?,?,?) "
                             + "ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, owner_name = excluded.owner_name, "
-                            + "name = excluded.name, motto = excluded.motto")) {
+                            + "name = excluded.name, motto = excluded.motto, name_style = excluded.name_style, "
+                            + "motto_style = excluded.motto_style")) {
                 row.setString(1, store.id().toString());
                 row.setString(2, store.owner().toString());
                 row.setString(3, store.ownerName());
                 row.setString(4, store.name());
                 row.setString(5, store.motto());
                 row.setLong(6, store.createdAt());
+                row.setString(7, store.nameStyle().encode());
+                row.setString(8, store.mottoStyle().encode());
                 row.executeUpdate();
             }
             try (PreparedStatement clear = connection.prepareStatement("DELETE FROM player_shop_staff WHERE shop = ?")) {
@@ -78,12 +83,14 @@ public final class StoreStore {
             Map<String, Map<UUID, Role>> staff = staff(connection);
             List<Store> stores = new ArrayList<>();
             try (PreparedStatement query = connection.prepareStatement(
-                    "SELECT id, owner, owner_name, name, motto, created FROM player_shop ORDER BY created, id");
+                    "SELECT id, owner, owner_name, name, motto, created, name_style, motto_style FROM player_shop "
+                            + "ORDER BY created, id");
                  ResultSet rows = query.executeQuery()) {
                 while (rows.next()) {
                     stores.add(new Store(UUID.fromString(rows.getString(1)), UUID.fromString(rows.getString(2)),
                             rows.getString(3), rows.getString(4), rows.getString(5), rows.getLong(6),
-                            staff.getOrDefault(rows.getString(1), Map.of())));
+                            staff.getOrDefault(rows.getString(1), Map.of()), NameStyle.parse(rows.getString(7)),
+                            NameStyle.parse(rows.getString(8))));
                 }
             }
             return stores;

@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.screen;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Review;
 import de.raindancer.modules.shops.model.Shop;
@@ -32,7 +33,7 @@ public final class ShopReviewsMenu extends PaginatedMenu<Review> implements ISho
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Reviews · " + Lines.plain(shop.name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Reviews · " + Lines.named(shop.name(), shop.nameStyle(), ""));
     }
 
     @Override
@@ -56,12 +57,12 @@ public final class ShopReviewsMenu extends PaginatedMenu<Review> implements ISho
         List<String> lore = new ArrayList<>();
         lore.add("<gold>" + Review.stars(review.stars()));
         if (!review.text().isEmpty()) {
-            lore.add("<white>“" + Lines.plain(review.text()) + "”");
+            lore.add("<white>“" + Text.literal(review.text()) + "”");
         }
         if (services.keeper().isAdmin(viewer)) {
             lore.add("<red>Shift click to take it down (staff)");
         }
-        return Icons.head(review.author(), "<white>" + Lines.plain(review.authorName()), lore);
+        return Icons.head(review.author(), "<white>" + Text.literal(review.authorName()), lore);
     }
 
     @Override

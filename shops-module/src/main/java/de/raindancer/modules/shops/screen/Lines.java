@@ -1,11 +1,13 @@
 package de.raindancer.modules.shops.screen;
 
-import de.raindancer.core.platform.util.Scheduling;
-import de.raindancer.core.social.economy.Economies;
-import de.raindancer.core.social.economy.Economy;
 import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.social.economy.Money;
+import de.raindancer.core.ui.choose.StyleGrants;
 import de.raindancer.core.ui.menu.Icons;
+import de.raindancer.core.ui.prompt.Parsers;
+import de.raindancer.core.ui.text.Gradients;
+import de.raindancer.core.ui.text.NameStyle;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Listing;
 import de.raindancer.modules.shops.model.Rating;
@@ -14,26 +16,18 @@ import de.raindancer.modules.shops.model.Review;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Status;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
-/** What several screens say alike about a shop, and the one way they ask for typed text. Not a screen itself. */
+/** What several screens say alike about a shop or an offer. Not a screen itself. */
 final class Lines {
 
     private static final MiniMessage MINI = MiniMessage.miniMessage();
 
     private Lines() {
-    }
-
-    /** A player-written text, safe inside a lore line. */
-    static String plain(String text) {
-        return MINI.escapeTags(text == null ? "" : text);
     }
 
     /** A refusal's sentence without its colours, for the reason under a greyed button. */
@@ -74,7 +68,7 @@ final class Lines {
     static List<String> listing(Listing listing) {
         Shop shop = listing.shop();
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>" + plain(shop.name()) + " <dark_gray>· " + plain(shop.ownerName()));
+        lore.add(named(shop.name(), shop.nameStyle(), "<gray>") + " <dark_gray>· " + Text.literal(shop.ownerName()));
         lore.addAll(prices(shop));
         if (shop.prices().sells()) {
             lore.add(listing.bundlesInStock() > 0 ? "<gray>" + listing.stock() + " in stock"
@@ -86,7 +80,7 @@ final class Lines {
         }
         lore.add(rating(listing.rating()));
         if (!listing.here()) {
-            lore.add("<aqua>On " + plain(shop.spot().server()) + "<dark_gray> (stock as of its last trade)");
+            lore.add("<aqua>On " + Text.literal(shop.spot().server()) + "<dark_gray> (stock as of its last trade)");
         }
         if (shop.status() != Status.OPEN) {
             lore.add(status(shop));
@@ -102,30 +96,23 @@ final class Lines {
     }
 
     /**
-     * Asks the player to type something in chat, closing the window meanwhile; {@code answer} runs on the player's
-     * own thread. {@code cancel}, {@code -} or a minute's silence gives up.
+     * A name painted in its style, as markup for a title or an icon — Core's {@code Gradients}, the text kept
+     * literal. Unstyled, it wears {@code plain} instead.
      */
-    static void ask(ShopsServices services, Player player, String question, Consumer<String> answer,
-                    Runnable gaveUp) {
-        player.closeInventory();
-        services.messages().send(player, question);
-        boolean asked = services.core().prompts().ask(player.getUniqueId(), "RainsShops", Duration.ofMinutes(1),
-                typed -> Scheduling.entity(services.plugin(), player, () -> {
-                    if (typed.strip().equals("-")) {
-                        gaveUp.run();
-                    } else {
-                        answer.accept(typed.strip());
-                    }
-                }),
-                () -> Scheduling.entity(services.plugin(), player, gaveUp));
-        if (!asked) {
-            services.messages().send(player, "shops.prompt.busy");
+    static String named(String text, NameStyle style, String plain) {
+        if (style == null || style.isEmpty()) {
+            return plain + Text.literal(text);
         }
+        return Text.closed(Gradients.styled(text, style));
     }
 
-    /** An amount as typed — {@code 12}, {@code 1.5k}, {@code $3} — in the server's currency. */
-    static Optional<Money> money(String typed) {
-        return Economies.current().map(Economy::currency).orElse(de.raindancer.core.social.economy.Currency.DEFAULT)
-                .parse(typed);
+    /** What may be painted on a shop's names: everything but flowing colours, unless the server switched it off. */
+    static StyleGrants grants(ShopsServices services) {
+        return services.config().styledNames() ? StyleGrants.ALL.withAnimated(false) : StyleGrants.NOTHING;
+    }
+
+    /** An amount of money typed into an anvil: 0 is "none", the server's price ceiling the most. */
+    static Parsers.Parser<Money> price(ShopsServices services) {
+        return Parsers.money(Fees.currency(), true, Fees.amount(services.config().mostPrice()));
     }
 }

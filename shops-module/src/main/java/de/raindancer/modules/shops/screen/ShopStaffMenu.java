@@ -4,6 +4,7 @@ import de.raindancer.core.ui.choose.PlayerChooser;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Role;
@@ -38,7 +39,7 @@ public final class ShopStaffMenu extends PaginatedMenu<Map.Entry<UUID, Role>> im
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Staff · " + Lines.plain(shop().name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Staff · " + Lines.named(shop().name(), shop().nameStyle(), ""));
     }
 
     @Override
@@ -65,7 +66,7 @@ public final class ShopStaffMenu extends PaginatedMenu<Map.Entry<UUID, Role>> im
     @Override
     protected ItemStack icon(Map.Entry<UUID, Role> member) {
         String name = services.core().identities().nameOf(member.getKey()).orElse("?");
-        return Icons.head(member.getKey(), "<white>" + Lines.plain(name),
+        return Icons.head(member.getKey(), "<white>" + Text.literal(name),
                 "<gray>" + member.getValue().title() + ": " + member.getValue().does(),
                 "<yellow>Click to make them " + member.getValue().next().title().toLowerCase(java.util.Locale.ROOT),
                 "<red>Shift click to let them go");

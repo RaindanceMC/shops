@@ -98,16 +98,6 @@ shops:
   log:
     line: "<gray><player> — <white><items></white> items, <gold><amount></gold>"
 
-  prompt:
-    busy: "<red>You are already being asked something. Answer that first."
-    buy-price: "<yellow>Type the selling price per bundle in chat — 0 to stop selling, a dash to keep it."
-    sell-price: "<yellow>Type the buying price per bundle in chat — 0 to stop buying, a dash to keep it."
-    name: "<yellow>Type the offer's new name in chat, or a dash to keep it."
-    store-name: "<yellow>Type the shop's name in chat, or a dash to give up."
-    motto: "<yellow>Type the shop's motto in chat; a dash clears it."
-    review: "<yellow>Type your review in chat — or a dash for stars only."
-    search: "<yellow>Type what you are looking for — or a dash for everything."
-    not-money: "<red><white><typed></white> is not an amount of money. Try 12, 1.5k or 0."
 
   travel:
     counting: "<gray>Off to <white><shop></white> in <white><seconds></white>…"

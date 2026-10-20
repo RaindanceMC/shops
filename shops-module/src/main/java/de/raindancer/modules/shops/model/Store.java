@@ -1,5 +1,7 @@
 package de.raindancer.modules.shops.model;
 
+import de.raindancer.core.ui.text.NameStyle;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -10,10 +12,12 @@ import java.util.UUID;
  * sells. A player may run several — a smithy and a farm stand — each with its own staff.
  *
  * @param motto one line under the name, on the shopkeeper and the shop's page
- * @param staff who else works here, and as what — clerks stock the chests, managers also price the offers
+ * @param staff      who else works here, and as what — clerks stock the chests, managers also price the offers
+ * @param nameStyle  how the name is painted — Core's {@link NameStyle}, the same as a player's name
+ * @param mottoStyle how the motto is painted
  */
 public record Store(UUID id, UUID owner, String ownerName, String name, String motto, long createdAt,
-                    Map<UUID, Role> staff) {
+                    Map<UUID, Role> staff, NameStyle nameStyle, NameStyle mottoStyle) {
 
     public Store {
         ownerName = ownerName == null ? "" : ownerName;
@@ -21,6 +25,14 @@ public record Store(UUID id, UUID owner, String ownerName, String name, String m
                 : name.strip();
         motto = motto == null ? "" : motto.strip();
         staff = staff == null ? Map.of() : Map.copyOf(staff);
+        nameStyle = nameStyle == null ? NameStyle.NONE : nameStyle;
+        mottoStyle = mottoStyle == null ? NameStyle.NONE : mottoStyle;
+    }
+
+    /** A shop with plain words. */
+    public Store(UUID id, UUID owner, String ownerName, String name, String motto, long createdAt,
+                 Map<UUID, Role> staff) {
+        this(id, owner, ownerName, name, motto, createdAt, staff, NameStyle.NONE, NameStyle.NONE);
     }
 
     public boolean isOwner(UUID who) {
@@ -42,15 +54,15 @@ public record Store(UUID id, UUID owner, String ownerName, String name, String m
     }
 
     public Store withName(String changed) {
-        return new Store(id, owner, ownerName, changed, motto, createdAt, staff);
+        return new Store(id, owner, ownerName, changed, motto, createdAt, staff, nameStyle, mottoStyle);
     }
 
     public Store withMotto(String changed) {
-        return new Store(id, owner, ownerName, name, changed, createdAt, staff);
+        return new Store(id, owner, ownerName, name, changed, createdAt, staff, nameStyle, mottoStyle);
     }
 
     public Store withOwnerName(String changed) {
-        return new Store(id, owner, changed, name, motto, createdAt, staff);
+        return new Store(id, owner, changed, name, motto, createdAt, staff, nameStyle, mottoStyle);
     }
 
     public Store withStaff(UUID who, Role role) {
@@ -60,6 +72,14 @@ public record Store(UUID id, UUID owner, String ownerName, String name, String m
         } else if (!isOwner(who)) {
             changed.put(who, role);
         }
-        return new Store(id, owner, ownerName, name, motto, createdAt, changed);
+        return new Store(id, owner, ownerName, name, motto, createdAt, changed, nameStyle, mottoStyle);
+    }
+
+    public Store withNameStyle(NameStyle changed) {
+        return new Store(id, owner, ownerName, name, motto, createdAt, staff, changed, mottoStyle);
+    }
+
+    public Store withMottoStyle(NameStyle changed) {
+        return new Store(id, owner, ownerName, name, motto, createdAt, staff, nameStyle, changed);
     }
 }

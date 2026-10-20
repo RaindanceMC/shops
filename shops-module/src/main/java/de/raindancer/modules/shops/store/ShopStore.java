@@ -2,6 +2,7 @@ package de.raindancer.modules.shops.store;
 
 import de.raindancer.core.data.sql.Database;
 import de.raindancer.core.social.economy.Money;
+import de.raindancer.core.ui.text.NameStyle;
 import de.raindancer.modules.shops.model.Prices;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Spot;
@@ -27,7 +28,7 @@ public final class ShopStore {
     }
 
     private static final String COLUMNS = "id, shop, server, world, x, y, z, owner, owner_name, name, material, ware, "
-            + "label, buy, sell, bundle, status, created, rent_paid_to, buy_limit, low_stock";
+            + "label, buy, sell, bundle, status, created, rent_paid_to, buy_limit, low_stock, name_style";
 
     private final Database database;
 
@@ -38,14 +39,15 @@ public final class ShopStore {
     public boolean save(Shop shop) {
         return database.write(connection -> {
             try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO offer (" + COLUMNS + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                    "INSERT INTO offer (" + COLUMNS + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
                             + "ON CONFLICT(id) DO UPDATE SET shop = excluded.shop, server = excluded.server, "
                             + "world = excluded.world, x = excluded.x, y = excluded.y, z = excluded.z, "
                             + "owner = excluded.owner, owner_name = excluded.owner_name, name = excluded.name, "
                             + "material = excluded.material, ware = excluded.ware, label = excluded.label, "
                             + "buy = excluded.buy, sell = excluded.sell, bundle = excluded.bundle, "
                             + "status = excluded.status, rent_paid_to = excluded.rent_paid_to, "
-                            + "buy_limit = excluded.buy_limit, low_stock = excluded.low_stock")) {
+                            + "buy_limit = excluded.buy_limit, low_stock = excluded.low_stock, "
+                            + "name_style = excluded.name_style")) {
                 int at = 1;
                 row.setString(at++, shop.id().toString());
                 row.setString(at++, shop.store().toString());
@@ -67,7 +69,8 @@ public final class ShopStore {
                 row.setLong(at++, shop.createdAt());
                 row.setLong(at++, shop.rentPaidTo());
                 row.setInt(at++, shop.buyLimit());
-                row.setInt(at, shop.lowStockAt());
+                row.setInt(at++, shop.lowStockAt());
+                row.setString(at, shop.nameStyle().encode());
                 row.executeUpdate();
             }
             try (PreparedStatement clear = connection.prepareStatement("DELETE FROM offer_chest WHERE offer = ?")) {
@@ -185,6 +188,6 @@ public final class ShopStore {
         return new Shop(UUID.fromString(id), UUID.fromString(rows.getString(2)), UUID.fromString(rows.getString(8)),
                 rows.getString(9), rows.getString(10), spot, chests.getOrDefault(id, List.of()), ware, prices,
                 Status.parse(rows.getString(17)), rows.getLong(18), rows.getLong(19), rows.getInt(20),
-                rows.getInt(21));
+                rows.getInt(21), NameStyle.parse(rows.getString(22)));
     }
 }

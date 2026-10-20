@@ -3,9 +3,13 @@ package de.raindancer.modules.shops.screen;
 import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.social.economy.Money;
 import de.raindancer.core.ui.choose.AmountChooser;
+import de.raindancer.core.ui.choose.StyleEditor;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.MenuLayout;
+import de.raindancer.core.ui.prompt.AnvilInput;
+import de.raindancer.core.ui.prompt.Parsers;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Prices;
@@ -21,7 +25,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * An offer's back room: its prices, the chests it sells from, its log. What the shop's owner and managers see; a
@@ -47,7 +50,7 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Offer · " + Lines.plain(shop().name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Offer · " + Lines.named(shop().name(), shop().nameStyle(), ""));
     }
 
     @Override
@@ -80,8 +83,8 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
                 click -> new AmountChooser(viewer, services.brand(), this, "Items per bundle", shop.prices().bundle(),
                         1, Prices.LARGEST_BUNDLE, size -> show(services.keeper().prices(viewer, shop(),
                         shop().prices().withBundle(size)))).stepsOf(1, 8, 64).open());
-        band(MenuLayout.WHO, 4, Lines.ware(services, shop, "<white>" + Lines.plain(shop.name()), List.of(
-                "<gray>Trades in " + Lines.plain(shop.ware().label()), Lines.status(shop),
+        band(MenuLayout.WHO, 4, Lines.ware(services, shop, Lines.named(shop.name(), shop.nameStyle(), "<white>"), List.of(
+                "<gray>Trades in " + Text.literal(shop.ware().label()), Lines.status(shop),
                 "<gray>" + services.book().knownOf(shop.id()).stock() + " in stock, "
                         + services.book().knownOf(shop.id()).sales() + " trades so far",
                 "<gray>" + shop.chests().size() + " stock chest" + (shop.chests().size() == 1 ? "" : "s"))));
@@ -91,10 +94,17 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
                         open ? "<gray>Click to pause it." : "<gray>Click to open it for trade."),
                 shop.status() == Status.CLOSED ? "Closed by staff" : notManager,
                 click -> show(services.keeper().toggleOpen(viewer, shop())));
-        band(MenuLayout.WHO, 7, manager, Icons.of(Material.NAME_TAG, "<white>Rename",
-                "<gray>Now: " + Lines.plain(shop.name()), "<yellow>Click to type a new name."), notManager,
-                click -> Lines.ask(services, viewer, "shops.prompt.name", typed ->
-                        show(services.keeper().rename(viewer, shop(), typed)), this::open));
+        band(MenuLayout.WHO, 7, manager, Icons.of(Material.NAME_TAG, "<white>Name",
+                "<gray>Now: " + Lines.named(shop.name(), shop.nameStyle(), "<white>"),
+                "<yellow>Click to type a new one.", "<yellow>Right click to paint it."), notManager, click -> {
+                    if (click.isRightClick()) {
+                        styleName();
+                    } else {
+                        AnvilInput.open(viewer, "Name this offer", shop().name(),
+                                Parsers.text(services.config().nameLimit()),
+                                name -> show(services.keeper().rename(viewer, shop(), name)), this::open);
+                    }
+                });
 
         band(MenuLayout.RULES, 1, manager, Icons.of(Material.CHEST, "<white>Link stock chests",
                         "<gray>" + shop.chests().size() + " of " + services.config().chestLimit() + " linked.",
@@ -157,7 +167,7 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
         if (manager) {
             danger(Icons.of(Material.TNT, "<red>End this offer",
                     "<gray>Its chests and their stock stay.", "<gray>Asks first."), click ->
-                    new ConfirmScreen(services, viewer, this, "<red>End " + Lines.plain(shop.name()) + "?",
+                    new ConfirmScreen(services, viewer, this, "<red>End " + Text.literal(shop.name()) + "?",
                             List.of("<gray>The shopkeeper stops selling it.",
                                     "<gray>The chests keep everything in them.",
                                     "<gray>Its log and reviews are kept for your statement."), () -> {
@@ -173,17 +183,29 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
     }
 
     private void askPrice(boolean selling) {
-        Lines.ask(services, viewer, selling ? "shops.prompt.buy-price" : "shops.prompt.sell-price", typed -> {
-            Optional<Money> price = typed.equals("0") ? Optional.of(Money.ZERO) : Lines.money(typed);
-            if (price.isEmpty()) {
-                services.messages().send(viewer, "shops.prompt.not-money", "typed", typed);
-                open();
-                return;
-            }
-            Prices now = shop().prices();
-            show(services.keeper().prices(viewer, shop(), selling ? now.withBuy(price.get())
-                    : now.withSell(price.get())));
-        }, this::open);
+        Prices now = shop().prices();
+        Money current = selling ? now.buy() : now.sell();
+        AnvilInput.open(viewer, selling ? "Selling price per bundle" : "Buying price per bundle",
+                current.isPositive() ? Fees.currency().amount(current) : "", Lines.price(services), price -> {
+                    Prices latest = shop().prices();
+                    show(services.keeper().prices(viewer, shop(), selling ? latest.withBuy(price)
+                            : latest.withSell(price)));
+                }, this::open);
+    }
+
+    private void styleName() {
+        StyleEditor.of(viewer, services.brand(), this)
+                .heading("Paint the offer's name")
+                .sample(() -> shop().name())
+                .current(() -> shop().nameStyle())
+                .grants(Lines.grants(services))
+                .onChange(style -> {
+                    var done = services.keeper().manage(viewer, shop(), edited -> edited.withNameStyle(style));
+                    if (!done.ok()) {
+                        services.refuse(viewer, done.refusal());
+                    }
+                })
+                .open();
     }
 
     /** Says what came of a change and draws the page again. */

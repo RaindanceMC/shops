@@ -1,5 +1,8 @@
 package de.raindancer.modules.shops.model;
 
+import de.raindancer.core.ui.choose.Catalogue;
+import de.raindancer.core.ui.text.WordSearch;
+
 import java.util.Locale;
 
 /**
@@ -14,41 +17,11 @@ public record Ware(String material, String encoded, String label) {
     public Ware {
         material = material == null ? "" : material.toUpperCase(Locale.ROOT);
         encoded = encoded == null ? "" : encoded;
-        label = label == null || label.isBlank() ? words(material) : label.strip();
+        label = label == null || label.isBlank() ? (material.isEmpty() ? "Nothing" : Catalogue.readable(material)) : label.strip();
     }
 
-    /** {@code DIAMOND_SWORD} as {@code Diamond Sword}. */
-    public static String words(String material) {
-        if (material == null || material.isBlank()) {
-            return "Nothing";
-        }
-        StringBuilder out = new StringBuilder();
-        for (String part : material.toLowerCase(Locale.ROOT).split("_")) {
-            if (part.isEmpty()) {
-                continue;
-            }
-            if (!out.isEmpty()) {
-                out.append(' ');
-            }
-            out.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
-        }
-        return out.toString();
-    }
-
-    /**
-     * Whether somebody searching for {@code typed} means this: every word they typed appears in the label or the
-     * material, in any order and case — {@code "sword dia"} finds a diamond sword.
-     */
+    /** Whether somebody searching for {@code typed} means this — Core's word search over its label and material. */
     public boolean matches(String typed) {
-        if (typed == null || typed.isBlank()) {
-            return true;
-        }
-        String haystack = (label + " " + material.replace('_', ' ')).toLowerCase(Locale.ROOT);
-        for (String word : typed.toLowerCase(Locale.ROOT).replace('_', ' ').trim().split("\\s+")) {
-            if (!haystack.contains(word)) {
-                return false;
-            }
-        }
-        return true;
+        return WordSearch.matches(typed, label, material);
     }
 }

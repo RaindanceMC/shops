@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.screen;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Listing;
 import de.raindancer.modules.shops.model.Shop;
@@ -42,7 +43,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>" + Lines.plain(store().name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>" + Lines.named(store().name(), store().nameStyle(), ""));
     }
 
     @Override
@@ -71,7 +72,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
         boolean manager = store().mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer);
         lore.add(!listing.here() ? "<gray>On another server" : manager ? "<yellow>Click for its back room"
                 : via == null && !services.trades().remote() ? "<gray>Buy it at the shopkeeper" : "<yellow>Click to trade");
-        return Lines.ware(services, shop, "<white>" + Lines.plain(shop.ware().label()), lore);
+        return Lines.ware(services, shop, "<white>" + Text.literal(shop.ware().label()), lore);
     }
 
     @Override
@@ -91,9 +92,9 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
     protected void decorate() {
         super.decorate();
         Store store = store();
-        toolbar(4, Icons.head(store.owner(), "<gold>" + Lines.plain(store.name()),
-                store.motto().isEmpty() ? "<gray>By " + Lines.plain(store.ownerName())
-                        : "<gray>" + Lines.plain(store.motto()),
+        toolbar(4, Icons.head(store.owner(), Lines.named(store.name(), store.nameStyle(), "<gold>"),
+                store.motto().isEmpty() ? "<gray>By " + Text.literal(store.ownerName())
+                        : Lines.named(store.motto(), store.mottoStyle(), "<gray>"),
                 "<dark_gray>" + entries().size() + " offers"), click ->
                 services.messages().send(viewer, "shops.store.about", "store", store.name(), "owner",
                         store.ownerName()));

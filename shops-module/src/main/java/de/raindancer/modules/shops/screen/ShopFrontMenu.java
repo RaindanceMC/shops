@@ -7,6 +7,7 @@ import de.raindancer.core.ui.effect.Cues;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.MenuLayout;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Quote;
 import de.raindancer.modules.shops.model.Shop;
@@ -48,7 +49,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>" + Lines.plain(shop().name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>" + Lines.named(shop().name(), shop().nameStyle(), ""));
     }
 
     @Override
@@ -61,13 +62,13 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
         Shop shop = shop();
         List<String> about = new ArrayList<>(Lines.prices(shop));
         services.book().store(shop.store()).ifPresent(store ->
-                about.add("<gray>At <white>" + Lines.plain(store.name()) + " <gray>by " + Lines.plain(shop.ownerName())));
+                about.add("<gray>At " + Lines.named(store.name(), store.nameStyle(), "<white>") + " <gray>by " + Text.literal(shop.ownerName())));
         if (via == null) {
             about.add("<gray>From the bazaar: it comes straight to you.");
         }
         about.add(Lines.status(shop));
         about.add(Lines.rating(services.book().rating(shop.id())));
-        band(MenuLayout.WHO, 4, Lines.ware(services, shop, "<white>" + Lines.plain(shop.ware().label()), about));
+        band(MenuLayout.WHO, 4, Lines.ware(services, shop, "<white>" + Text.literal(shop.ware().label()), about));
 
         if (shop.prices().sells()) {
             tradeButton(MenuLayout.RULES, 1, shop, TradeSide.BUY, 1, Material.EMERALD, "Buy one bundle");
@@ -99,7 +100,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
                 services.reviews().read(viewer, shop, reviews ->
                         new ShopReviewsMenu(services, viewer, this, shop, reviews).open()));
         services.book().store(shop.store()).ifPresent(store ->
-                band(MenuLayout.LAND, 5, Icons.head(shop.owner(), "<white>" + Lines.plain(store.name()),
+                band(MenuLayout.LAND, 5, Icons.head(shop.owner(), Lines.named(store.name(), store.nameStyle(), "<white>"),
                                 "<gray>Everything else this shop offers."),
                         click -> new StoreMenu(services, viewer, this, store, via).open()));
         if (services.book().managerOf(shop, viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
@@ -115,7 +116,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
         int shown = verdict.allowed() ? verdict.bundles() : bundles;
         Quote quote = services.trades().desk().quote(shop, side, shown);
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>" + quote.items() + " × " + Lines.plain(shop.ware().label()));
+        lore.add("<gray>" + quote.items() + " × " + Text.literal(shop.ware().label()));
         lore.add(side == TradeSide.BUY ? "<gray>You pay <gold>" + Fees.format(quote.gross())
                 : "<gray>You get <gold>" + Fees.format(quote.net()));
         if (verdict.trimmed()) {
@@ -133,6 +134,16 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
     }
 
     private void trade(Shop shop, TradeSide side, int bundles) {
+        if (via == null) {
+            // From afar: the stock chests are brought in first, through Core.
+            services.trades().prepare(shop).thenRun(() -> de.raindancer.core.platform.util.Scheduling.entity(
+                    services.plugin(), viewer, () -> tradeNow(shop, side, bundles)));
+            return;
+        }
+        tradeNow(shop, side, bundles);
+    }
+
+    private void tradeNow(Shop shop, TradeSide side, int bundles) {
         TradeDesk.Outcome outcome = services.trades().trade(viewer, shop, side, bundles, via);
         if (outcome.happened()) {
             services.core().effects().play(viewer.getUniqueId(), Cues.OK);

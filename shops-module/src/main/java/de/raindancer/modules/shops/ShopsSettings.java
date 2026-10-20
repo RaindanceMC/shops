@@ -1,5 +1,6 @@
 package de.raindancer.modules.shops;
 
+import de.raindancer.core.data.settings.Choices;
 import de.raindancer.core.data.settings.Describe;
 import de.raindancer.core.data.settings.In;
 import de.raindancer.core.data.settings.Key;
@@ -7,7 +8,10 @@ import de.raindancer.core.data.settings.Range;
 import de.raindancer.core.data.settings.Settings;
 import de.raindancer.core.data.settings.Title;
 import de.raindancer.core.data.settings.Topic;
+import de.raindancer.core.data.settings.choices.Worlds;
 import org.bukkit.Material;
+
+import java.util.List;
 
 /**
  * What an owner can decide about players' shops — shopkeepers, their offers and the chests the offers sell from.
@@ -24,17 +28,17 @@ import org.bukkit.Material;
 public record ShopsSettings(
 
         @In("shops/opening") @Title("Blocks that may be stock chests")
-        @Describe("Containers, by name, separated by commas, that an offer may keep its stock in. Shulker boxes and "
-                + "ender chests never are, whatever this says: a box is carried off with its stock in it, and an ender "
-                + "chest is each player's own.")
-        @Key("containers")
-        String containers,
+        @Describe("Containers an offer may keep its stock in. Shulker boxes and ender chests never are, whatever this "
+                + "says: a box is carried off with its stock in it, and an ender chest is each player's own.")
+        @Key("stock-containers")
+        @Choices(StockContainers.class)
+        List<String> containers,
 
         @In("shops/opening") @Title("Worlds without shops")
-        @Describe("World names, separated by commas, where nobody may set up a shop — an arena, a lobby. Blank allows "
-                + "them everywhere the land allows building.")
-        @Key("closed-worlds")
-        String closedWorlds,
+        @Describe("Worlds where nobody may set up a shop — an arena, a lobby. Everywhere else the land decides.")
+        @Key("worlds-without-shops")
+        @Choices(value = Worlds.class, listedMeansOff = true)
+        List<String> closedWorlds,
 
         @In("shops/opening") @Title("Shops one player may have") @Range(min = 0, max = 100)
         @Describe("A shop is a shopkeeper with the owner's skin and the offers it sells. Permissions "
@@ -151,13 +155,19 @@ public record ShopsSettings(
         @In("shops/finding") @Title("Price of travelling to a shop")
         @Describe("Money taken for each trip to a shop. 0 is free.")
         @Key("travel-price")
-        String travelPrice) {
+        String travelPrice,
+
+        @In("shops/opening") @Title("Owners may style names")
+        @Describe("Whether owners may paint their shop's name and motto and their offers' names — colours, "
+                + "gradients, bold and the rest, with Core's style editor (right click the name in the shop's pages).")
+        @Key("styled-names")
+        boolean styledNames) {
 
     public static final ShopsSettings DEFAULTS = new ShopsSettings(
-            "CHEST, TRAPPED_CHEST, BARREL", "", 3, 27, 12, 24, 24,
+            List.of("CHEST", "TRAPPED_CHEST", "BARREL"), List.of(), 3, 27, 12, 24, 24,
             "0", "0", 8, 0, "0",
             true, true, true, 180, true, 30, 120,
-            true, true, 3, "0");
+            true, true, 3, "0", true);
 
     public int cutPercent() {
         return Math.max(0, Math.min(100, serverCutPercent));
@@ -209,48 +219,60 @@ public record ShopsSettings(
         return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
                 openingPrice, rentPerWeek, mostWeeksAhead, percent, mostPrice, partialTrades, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
-                travelToShops, travelWarmup, travelPrice);
+                travelToShops, travelWarmup, travelPrice, styledNames);
     }
 
     public ShopsSettings withPartialTrades(boolean partial) {
         return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
                 openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partial, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
-                travelToShops, travelWarmup, travelPrice);
+                travelToShops, travelWarmup, travelPrice, styledNames);
     }
 
     public ShopsSettings withRentPerWeek(String rent) {
         return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
                 openingPrice, rent, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
-                travelToShops, travelWarmup, travelPrice);
+                travelToShops, travelWarmup, travelPrice, styledNames);
     }
 
     public ShopsSettings withOpeningPrice(String price) {
         return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
                 price, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops,
                 tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork,
-                travelToShops, travelWarmup, travelPrice);
+                travelToShops, travelWarmup, travelPrice, styledNames);
     }
 
     public ShopsSettings withMostShops(int most) {
         return new ShopsSettings(containers, closedWorlds, most, mostOffers, mostChests, linkReach, longestName,
                 openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades,
                 hoppersFillShops, tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview,
-                browseNetwork, travelToShops, travelWarmup, travelPrice);
+                browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames);
     }
 
     public ShopsSettings withLinkReach(int blocks) {
         return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, blocks, longestName,
                 openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades,
                 hoppersFillShops, tellOnlineOwners, keepTradesDays, remoteTrades, reviewDays, longestReview,
-                browseNetwork, travelToShops, travelWarmup, travelPrice);
+                browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames);
     }
 
     public ShopsSettings withRemoteTrades(boolean remote) {
         return new ShopsSettings(containers, closedWorlds, mostShops, mostOffers, mostChests, linkReach, longestName,
                 openingPrice, rentPerWeek, mostWeeksAhead, serverCutPercent, mostPrice, partialTrades,
                 hoppersFillShops, tellOnlineOwners, keepTradesDays, remote, reviewDays, longestReview, browseNetwork,
-                travelToShops, travelWarmup, travelPrice);
+                travelToShops, travelWarmup, travelPrice, styledNames);
+    }
+
+    /** Every chest and barrel there is, for the stock-containers page — never an ender chest. */
+    public static final class StockContainers implements java.util.function.Supplier<List<String>> {
+        @Override
+        public List<String> get() {
+            return java.util.Arrays.stream(Material.values())
+                    .filter(material -> !material.isLegacy() && material.isBlock())
+                    .map(Material::name)
+                    .filter(name -> (name.endsWith("CHEST") || name.endsWith("BARREL")) && !name.equals("ENDER_CHEST"))
+                    .sorted().toList();
+        }
     }
 }

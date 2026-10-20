@@ -5,6 +5,7 @@ import de.raindancer.core.social.economy.TradeSide;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Trade;
@@ -39,7 +40,7 @@ public final class ShopLogMenu extends PaginatedMenu<Trade> implements IShopsScr
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Log · " + Lines.plain(shop.name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Log · " + Lines.named(shop.name(), shop.nameStyle(), ""));
     }
 
     @Override
@@ -61,8 +62,8 @@ public final class ShopLogMenu extends PaginatedMenu<Trade> implements IShopsScr
     protected ItemStack icon(Trade trade) {
         boolean sale = trade.side() == TradeSide.BUY;
         return Icons.head(trade.customer(), (sale ? "<green>Sold to " : "<aqua>Bought from ")
-                        + Lines.plain(trade.customerName()),
-                "<gray>" + trade.items() + " × " + Lines.plain(trade.ware()),
+                        + Text.literal(trade.customerName()),
+                "<gray>" + trade.items() + " × " + Text.literal(trade.ware()),
                 sale ? "<gray>You got <gold>" + Fees.format(trade.net())
                         + (trade.cut().isPositive() ? " <dark_gray>(" + Fees.format(trade.cut()) + " to the server)" : "")
                         : "<gray>You paid <gold>" + Fees.format(trade.gross()),

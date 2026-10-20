@@ -5,6 +5,7 @@ import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.MenuLayout;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Statement;
 import net.kyori.adventure.text.Component;
@@ -66,7 +67,7 @@ public final class StatementMenu extends Menu implements IShopsScreen {
                 "<gray>" + shown.purchases() + " purchases, " + shown.itemsBought() + " items"));
         List<String> regulars = new ArrayList<>();
         for (Statement.Customer customer : shown.regulars()) {
-            regulars.add("<white>" + Lines.plain(customer.name()) + " <gray>— " + customer.trades() + " trades, "
+            regulars.add("<white>" + Text.literal(customer.name()) + " <gray>— " + customer.trades() + " trades, "
                     + Fees.format(customer.spent()));
         }
         if (regulars.isEmpty()) {

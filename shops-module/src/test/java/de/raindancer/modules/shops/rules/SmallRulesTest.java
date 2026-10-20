@@ -109,7 +109,7 @@ class SmallRulesTest {
         @Test
         @DisplayName("only the containers the server lists, named in any case")
         void containers() {
-            Set<String> allowed = rule.allowed("chest, Barrel ,TRAPPED_CHEST,, nonsense");
+            Set<String> allowed = rule.names(java.util.List.of("chest", " Barrel ", "TRAPPED_CHEST", "", "nonsense"));
             assertThat(allowed).containsExactlyInAnyOrder("CHEST", "BARREL", "TRAPPED_CHEST", "NONSENSE");
             assertThat(rule.mayBeShop("BARREL", allowed)).isTrue();
             assertThat(rule.mayBeShop("SHULKER_BOX", allowed))
@@ -122,8 +122,8 @@ class SmallRulesTest {
         @DisplayName("a world the server shut shops out of is refused")
         void worlds() {
             assertThat(rule.worldAllowed("world", Set.of())).isTrue();
-            assertThat(rule.worldAllowed("arena", rule.allowed("arena, lobby"))).isFalse();
-            assertThat(rule.worldAllowed("ARENA", rule.allowed("arena"))).isFalse();
+            assertThat(rule.worldAllowed("arena", rule.names(java.util.List.of("arena", "lobby")))).isFalse();
+            assertThat(rule.worldAllowed("ARENA", rule.names(java.util.List.of("arena")))).isFalse();
         }
     }
 }

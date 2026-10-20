@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.screen;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.PaginatedMenu;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Shop;
@@ -54,12 +55,12 @@ public final class AdminShopsMenu extends PaginatedMenu<Shop> implements IShopsS
     @Override
     protected ItemStack icon(Shop shop) {
         List<String> lore = new ArrayList<>(Lines.listing(services.book().listing(shop, true)));
-        lore.add("<dark_gray>" + Lines.plain(shop.spot().describe()));
+        lore.add("<dark_gray>" + Text.literal(shop.spot().describe()));
         lore.add("");
         lore.add("<yellow>Click for its back room");
         lore.add("<yellow>Right click to go there");
         lore.add(shop.status() == Status.CLOSED ? "<red>Shift click to reopen it" : "<red>Shift click to close it");
-        return Lines.ware(services, shop, "<white>" + Lines.plain(shop.name()), lore);
+        return Lines.ware(services, shop, Lines.named(shop.name(), shop.nameStyle(), "<white>"), lore);
     }
 
     @Override

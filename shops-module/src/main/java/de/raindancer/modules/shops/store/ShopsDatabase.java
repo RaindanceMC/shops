@@ -70,7 +70,11 @@ public final class ShopsDatabase {
             "CREATE TABLE offer_chest (spot TEXT PRIMARY KEY, offer TEXT NOT NULL, server TEXT NOT NULL, "
                     + "world TEXT NOT NULL, x INTEGER NOT NULL, y INTEGER NOT NULL, z INTEGER NOT NULL, "
                     + "position INTEGER NOT NULL)",
-            "CREATE INDEX offer_chest_offer ON offer_chest (offer)");
+            "CREATE INDEX offer_chest_offer ON offer_chest (offer)",
+            // 0.3.0: names wear Core's NameStyle, encoded.
+            "ALTER TABLE player_shop ADD COLUMN name_style TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE player_shop ADD COLUMN motto_style TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE offer ADD COLUMN name_style TEXT NOT NULL DEFAULT ''");
 
     private ShopsDatabase() {
     }

@@ -1,12 +1,10 @@
 package de.raindancer.modules.shops.service;
 
+import de.raindancer.core.content.items.ItemWords;
 import de.raindancer.core.data.nbt.ItemText;
 import de.raindancer.modules.shops.model.Ware;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.Map;
 import java.util.Optional;
@@ -46,15 +44,8 @@ public final class Wares {
         return material == null || !material.isItem() ? Material.BARRIER : material;
     }
 
+    /** What a player calls it: its given name, or the material's — Core's {@code ItemWords}. */
     private static String label(ItemStack item) {
-        ItemMeta meta = item.getItemMeta();
-        Component name = meta == null ? null : meta.displayName();
-        if (name != null) {
-            String plain = PlainTextComponentSerializer.plainText().serialize(name).strip();
-            if (!plain.isEmpty()) {
-                return plain;
-            }
-        }
-        return Ware.words(item.getType().name());
+        return ItemWords.of(item).shown();
     }
 }

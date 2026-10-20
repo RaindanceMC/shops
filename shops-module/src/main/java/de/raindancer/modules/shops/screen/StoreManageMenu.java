@@ -1,8 +1,12 @@
 package de.raindancer.modules.shops.screen;
 
+import de.raindancer.core.ui.choose.StyleEditor;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
 import de.raindancer.core.ui.menu.MenuLayout;
+import de.raindancer.core.ui.prompt.AnvilInput;
+import de.raindancer.core.ui.prompt.Parsers;
+import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Shop;
@@ -35,7 +39,7 @@ public final class StoreManageMenu extends Menu implements IShopsScreen {
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Shop · " + Lines.plain(store().name()));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Shop · " + Lines.named(store().name(), store().nameStyle(), ""));
     }
 
     @Override
@@ -52,21 +56,39 @@ public final class StoreManageMenu extends Menu implements IShopsScreen {
         int offers = services.book().inStore(store.id()).size();
         Optional<Statue> keeper = services.book().keeperOf(store.id());
 
-        band(MenuLayout.WHO, 3, owner, Icons.of(Material.NAME_TAG, "<white>Name: " + Lines.plain(store.name()),
-                "<yellow>Click to type a new one."), "Only the owner may", click -> Lines.ask(services, viewer,
-                "shops.prompt.store-name", typed -> show(services.keeper().editStore(viewer, store(),
-                        edited -> edited.withName(typed))), this::open));
-        band(MenuLayout.WHO, 4, Icons.head(store.owner(), "<gold>" + Lines.plain(store.name()),
+        band(MenuLayout.WHO, 3, owner, Icons.of(Material.NAME_TAG,
+                "<white>Name: " + Lines.named(store.name(), store.nameStyle(), "<white>"),
+                "<yellow>Click to type a new one.", "<yellow>Right click to paint it."), "Only the owner may", click -> {
+                    if (click.isRightClick()) {
+                        style("Paint the shop's name", () -> store().name(), () -> store().nameStyle(),
+                                (edited, style) -> edited.withNameStyle(style));
+                    } else {
+                        AnvilInput.open(viewer, "Name your shop", store().name(),
+                                Parsers.text(services.config().nameLimit()), name -> show(services.keeper()
+                                        .editStore(viewer, store(), edited -> edited.withName(name))), this::open);
+                    }
+                });
+        band(MenuLayout.WHO, 4, Icons.head(store.owner(), Lines.named(store.name(), store.nameStyle(), "<gold>"),
                 "<gray>" + offers + " of " + services.config().offerLimit() + " offers",
-                keeper.map(at -> "<gray>Shopkeeper at " + Lines.plain(at.spot().describe())).orElse("<red>No shopkeeper"),
+                keeper.map(at -> "<gray>Shopkeeper at " + Text.literal(at.spot().describe())).orElse("<red>No shopkeeper"),
                 "<yellow>Click to see it as a customer does"),
                 click -> new StoreMenu(services, viewer, this, store, null).open());
         band(MenuLayout.WHO, 5, owner, Icons.of(Material.OAK_SIGN, "<white>Motto",
-                        store.motto().isEmpty() ? "<dark_gray>None yet" : "<gray>" + Lines.plain(store.motto()),
-                        "<gray>Under the shopkeeper's name.", "<yellow>Click to type one; a dash clears it."),
-                "Only the owner may", click -> Lines.ask(services, viewer, "shops.prompt.motto",
-                        typed -> show(services.keeper().editStore(viewer, store(), edited -> edited.withMotto(typed))),
-                        () -> show(services.keeper().editStore(viewer, store(), edited -> edited.withMotto("")))));
+                        store.motto().isEmpty() ? "<dark_gray>None yet"
+                                : Lines.named(store.motto(), store.mottoStyle(), "<gray>"),
+                        "<gray>Under the shopkeeper's name.", "<yellow>Click to type one.",
+                        "<yellow>Right click to paint it; shift click clears it."), "Only the owner may", click -> {
+                    if (click.isShiftClick()) {
+                        show(services.keeper().editStore(viewer, store(), edited -> edited.withMotto("")));
+                    } else if (click.isRightClick()) {
+                        style("Paint the motto", () -> store().motto().isEmpty() ? "Your motto" : store().motto(),
+                                () -> store().mottoStyle(), (edited, style) -> edited.withMottoStyle(style));
+                    } else {
+                        AnvilInput.open(viewer, "Your shop's motto", store().motto(),
+                                Parsers.text(services.config().reviewLimit()), motto -> show(services.keeper()
+                                        .editStore(viewer, store(), edited -> edited.withMotto(motto))), this::open);
+                    }
+                });
 
         ItemStack held = viewer.getInventory().getItemInMainHand();
         band(MenuLayout.RULES, 1, manager && !held.getType().isAir(), Icons.of(Material.EMERALD,
@@ -111,7 +133,7 @@ public final class StoreManageMenu extends Menu implements IShopsScreen {
         if (owner) {
             danger(Icons.of(Material.TNT, "<red>Close this shop",
                     "<gray>Its offers end and its shopkeeper goes;", "<gray>the chests keep their stock. Asks first."),
-                    click -> new ConfirmScreen(services, viewer, this, "<red>Close " + Lines.plain(store.name()) + "?",
+                    click -> new ConfirmScreen(services, viewer, this, "<red>Close " + Text.literal(store.name()) + "?",
                             List.of("<gray>Every offer of it ends, the shopkeeper goes.",
                                     "<gray>The chests and everything in them stay."), () -> {
                         Answer<Store> closed = services.keeper().closeShop(viewer, store());
@@ -123,6 +145,23 @@ public final class StoreManageMenu extends Menu implements IShopsScreen {
                         }
                     }).open());
         }
+    }
+
+    private void style(String heading, java.util.function.Supplier<String> sample,
+                       java.util.function.Supplier<de.raindancer.core.ui.text.NameStyle> current,
+                       java.util.function.BiFunction<Store, de.raindancer.core.ui.text.NameStyle, Store> apply) {
+        StyleEditor.of(viewer, services.brand(), this)
+                .heading(heading)
+                .sample(sample)
+                .current(current)
+                .grants(Lines.grants(services))
+                .onChange(style -> {
+                    Answer<Store> done = services.keeper().editStore(viewer, store(), edited -> apply.apply(edited, style));
+                    if (!done.ok()) {
+                        services.refuse(viewer, done.refusal());
+                    }
+                })
+                .open();
     }
 
     private void show(Answer<?> answer) {

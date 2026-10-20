@@ -1,7 +1,8 @@
 package de.raindancer.modules.shops.service;
 
-import de.raindancer.core.platform.util.Scheduling;
 import de.raindancer.core.social.economy.TradeSide;
+import de.raindancer.core.world.chunk.ChunkAt;
+import de.raindancer.core.world.chunk.ChunkHolds;
 import de.raindancer.modules.shops.ShopsSettings;
 import de.raindancer.modules.shops.model.Notice;
 import de.raindancer.modules.shops.model.Quote;
@@ -18,6 +19,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
@@ -25,33 +27,27 @@ import java.util.function.LongSupplier;
  * A trade as a player makes it: at the shop's shopkeeper, or from the bazaar. Finds the offer's real chests and the
  * real item, makes sure this thread may touch all of them, and hands them to the {@link TradeDesk} as one shelf.
  *
- * <p>A trade from the bazaar may find the chests' chunks unloaded. On Paper it loads them and holds them a minute with
- * a plugin ticket, so the counter it opened keeps working; on Folia another region's chunk is not this thread's to
- * touch, and the trade is refused as too far.
+ * <p>A trade from the bazaar may find the chests' chunks unloaded: {@link #prepare} brings them in through Core's
+ * {@code ChunkHolds} first, and the trade runs once they are. A chest that is still not this thread's to touch — on
+ * Folia, another region's — refuses the trade as too far.
  */
 public final class ShopTrades implements IShopsService {
 
     /** How far from the shopkeeper a customer may stand and still trade in person. */
     public static final double REACH = 8;
 
-    private static final long HOLD_MILLIS = 60_000;
-
-    private final org.bukkit.plugin.Plugin plugin;
+    private final ChunkHolds chunks;
     private final ShopBook book;
     private final ShopLocator locator;
     private final Wares wares;
     private final TradeDesk desk;
     private final NoticeService notices;
     private final LongSupplier clock;
-    private record Hold(org.bukkit.Chunk chunk, long until) {
-    }
-
-    private final java.util.Map<String, Hold> held = new java.util.concurrent.ConcurrentHashMap<>();
     private volatile ShopsSettings settings;
 
-    public ShopTrades(org.bukkit.plugin.Plugin plugin, ShopBook book, ShopLocator locator, Wares wares,
+    public ShopTrades(ChunkHolds chunks, ShopBook book, ShopLocator locator, Wares wares,
                       TradeDesk desk, NoticeService notices, ShopsSettings settings, LongSupplier clock) {
-        this.plugin = plugin;
+        this.chunks = chunks;
         this.book = book;
         this.notices = notices;
         this.clock = clock;
@@ -123,7 +119,7 @@ public final class ShopTrades implements IShopsService {
     /** Counts the offer's chests again — after somebody stocked one — and tells everybody who shows the count. */
     public void recount(Shop shop, Consumer<Shop> show) {
         wares.item(shop.ware()).ifPresent(item -> {
-            List<Shelf> shelves = shelves(shop, item, false);
+            List<Shelf> shelves = shelves(shop, item);
             if (shelves == null) {
                 return;
             }
@@ -133,22 +129,18 @@ public final class ShopTrades implements IShopsService {
         });
     }
 
-    /** Chunks held for bazaar trades whose minute is up are let go. On the global thread, now and then. */
-    public void releaseHeld() {
-        long now = clock.getAsLong();
-        held.values().removeIf(hold -> {
-            if (hold.until() > now) {
-                return false;
+    /** Brings the offer's stock chests in for a trade from afar; done when they all are. */
+    public CompletableFuture<Void> prepare(Shop shop) {
+        List<ChunkAt> wanted = new ArrayList<>();
+        for (Spot chest : shop.chests()) {
+            if (chest.isOn(book.server())) {
+                ChunkAt at = ChunkAt.ofBlock(chest.world(), chest.x(), chest.z());
+                if (!wanted.contains(at)) {
+                    wanted.add(at);
+                }
             }
-            hold.chunk().removePluginChunkTicket(plugin);
-            return true;
-        });
-    }
-
-    /** Every chunk still held, let go — when the module stops. */
-    public void releaseAll() {
-        held.values().forEach(hold -> hold.chunk().removePluginChunkTicket(plugin));
-        held.clear();
+        }
+        return chunks.forAMoment(wanted);
     }
 
     private Counter counter(Player customer, Shop asked, Location via) {
@@ -157,17 +149,15 @@ public final class ShopTrades implements IShopsService {
         }
         Shop shop = book.index().byId(asked.id()).orElseThrow();
         ItemStack item = wares.item(shop.ware()).orElseThrow();
-        List<Shelf> shelves = shelves(shop, item, via == null);
+        List<Shelf> shelves = shelves(shop, item);
         return new Counter(shop, InventoryShelf.player(customer, item), new PooledShelf(shelves));
     }
 
     /**
-     * The offer's chests as shelves — a double chest once, whichever halves are linked — or null when one cannot be
-     * touched from this thread.
-     *
-     * @param load whether an unloaded chest's chunk is loaded and held (a bazaar trade) rather than refused
+     * The offer's chests as shelves — a double chest once, whichever halves are linked — or null when one is not
+     * loaded or not this thread's to touch.
      */
-    private List<Shelf> shelves(Shop shop, ItemStack item, boolean load) {
+    private List<Shelf> shelves(Shop shop, ItemStack item) {
         List<Shelf> shelves = new ArrayList<>();
         java.util.Set<Inventory> seen = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         java.util.Set<String> doubles = new java.util.HashSet<>();
@@ -177,15 +167,7 @@ public final class ShopTrades implements IShopsService {
                 return null;
             }
             Location block = at.get();
-            if (!block.isChunkLoaded()) {
-                if (!load || Scheduling.isFolia()) {
-                    return null;
-                }
-                hold(block.getChunk());
-            } else if (load) {
-                hold(block.getChunk());
-            }
-            if (!Bukkit.isOwnedByCurrentRegion(block)) {
+            if (!block.isChunkLoaded() || !Bukkit.isOwnedByCurrentRegion(block)) {
                 return null;
             }
             Optional<Inventory> inventory = locator.inventory(chest);
@@ -211,13 +193,6 @@ public final class ShopTrades implements IShopsService {
         return null;
     }
 
-    private void hold(org.bukkit.Chunk chunk) {
-        String key = chunk.getWorld().getName() + "|" + chunk.getX() + "|" + chunk.getZ();
-        if (held.put(key, new Hold(chunk, clock.getAsLong() + HOLD_MILLIS)) == null) {
-            chunk.addPluginChunkTicket(plugin);
-        }
-    }
-
     /** Why this trade cannot even be looked at from here; null when it can. */
     private Refusal refusalOf(Player customer, Shop asked, Location via) {
         Optional<Shop> shop = book.index().byId(asked.id());
@@ -241,7 +216,7 @@ public final class ShopTrades implements IShopsService {
             return Refusal.NOTHING_TO_SELL;
         }
         ItemStack item = wares.item(shop.get().ware()).get();
-        if (shelves(shop.get(), item, via == null) == null) {
+        if (shelves(shop.get(), item) == null) {
             return Refusal.TOO_FAR;
         }
         return null;
