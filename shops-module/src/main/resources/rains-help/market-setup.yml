@@ -35,7 +35,7 @@ sections:
   - question: What may be a shop, and where?
     title: Chests and worlds
     text: |
-      <white>Blocks:</white> {setting:shops:stock-containers}. Shulker boxes and ender chests never work, whatever that list says — a box can be carried off with its stock, and an ender chest belongs to whoever opens it.
+      <white>Blocks:</white> {setting:shops:stock-containers|name}. Shulker boxes and ender chests never work, whatever that list says — a box can be carried off with its stock, and an ender chest belongs to whoever opens it.
       {if:shops:worlds-without-shops}<white>Not in these worlds:</white> {setting:shops:worlds-without-shops}.{else}Every world is allowed, as far as this setting goes.{/if}
       You also need the right to build there: shops go where you may build, so your own claim or a wilderness spot, not somebody's house.
   - question: How many shops may I have?
