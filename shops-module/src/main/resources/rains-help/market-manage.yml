@@ -1,0 +1,67 @@
+id: market-manage
+title: Running Your Shop
+summary: The back room, helpers, notices, reviews and statements — looking after a shop you have set up.
+intro: |
+  A shop does not run itself, whatever the sign promises. Here is everything you can do behind the counter, and who else may do it.
+icon: COMPARATOR
+category: Economy & trade
+order: 32
+module: shops
+aliases: [backroom, mine, myshops, statement, clerk, manager, staff, shopstaff, profit]
+keywords: [owner, helper, stock, log, review, notice, earnings, motto, name, paint, color, style, limit]
+related: [market, market-setup, market-money]
+sections:
+  - question: How do I look after my shops?
+    title: Your shops
+    text: |
+      {cmd:/market mine} lists all your shops. Click one for its <white>back room</white>. At the chest itself, <white>sneak and right-click it with an empty hand</white> — or just click its sign or item frame. (With something in your hand, sneaking places it like in normal Minecraft, so you can still hang frames and signs.)
+
+      Plain right-clicking your own chest simply opens it, to stock it. A click on your own sign or frame from a mere clerk just says it is your shop.
+  - question: What is in the back room?
+    title: The back room
+    text: |
+      <white>Selling price</white> and <white>Buying price</white> per bundle, the <white>Bundle</white> size, <white>Open or Paused</white>, the <white>Name</white>, <white>What floats over the chest</white>, <white>The log</white> (every trade, newest first), <white>Reviews</white>, <white>Where it is</white>, <white>Trade something else</white> (the item in your hand becomes the ware; old stock stays), a <white>Buy no more than</white> limit, <white>Warn me at</white>, <white>Rent</white> and <white>End this shop</white>.
+
+      Changes apply at once. Typed answers use an anvil: type, take the result.
+  - question: What are buy limits and warnings?
+    title: Limits and warnings
+    text: |
+      <white>Buy no more than</white> stops a buying shop once the chest holds that many of the item — otherwise it buys until the chest is full. <white>Warn me at</white> tells you when the stock falls to that number. You also hear when a shop is <white>sold out</white>, when its chest is <white>full</white> and cannot buy more, or when somebody wanted to sell to it but you could not pay.
+
+      Repeats of these warnings are held back for an hour per shop, so one busy customer does not flood your chat.
+  - question: How do I name and paint my shop?
+    title: Names and motto
+    text: |
+      Your shops belong to <white>your shop</white> — one page with your name and a motto — which exists from your first chest shop. Open it in {cmd:/market mine}, then <white>Your shop's page</white>. Names may be up to <white>{setting:shops:longest-name}</white> characters; longer ones are refused.
+      {if:shops:styled-names}Right-click a name or motto to <white>paint</white> it with colours, gradients and bold, using the style editor. It shows on the shop's page, the counter and over the chests.{/if}
+      Shift-click the motto to clear it.
+  - question: Who can help in my shop?
+    title: Clerks and managers
+    text: |
+      On your shop's page, <white>Staff</white> adds players. They start as <white>clerks</white>: they may fill and empty the chests. Click a helper to make them a <white>manager</white>, who also sets prices, the bundle and whether the shop is open and can use the back room. Shift-click lets somebody go.
+
+      Only you change the staff, the name and the motto. Helpers cannot trade with your shop either — it counts as theirs too. On a market plot, your helpers may also build on your plot.
+  - question: How do I see what I earned?
+    title: Statement
+    text: |
+      {cmd:/market statement} shows what your shops earned and spent: sales, items, what went to the server, profit, purchases, and your best customers — for today, this week, this month or everything kept. Trades are kept for <white>{setting:shops:keep-trades-days|days}</white>; older ones are forgotten.
+  - question: Will I hear about trades?
+    title: Notices
+    text: |
+      {if:shops:tell-online-owners}If you are online you hear about every trade at once.{else}Online owners are not told trade by trade; sales and purchases are summed up for you.{/if} Whenever you are away, a summary waits for you when you come back: sales and purchases added up, plus lines for sold-out shops, full chests, reviews and rent.
+  - question: Can hoppers feed my shop?
+    title: Hoppers
+    text: |
+      {if:shops:hoppers-fill-shops}Yes: a hopper may push items <i>into</i> a shop's chest, so a farm can stock your shop by itself.{else}No: hoppers are not allowed to feed shop chests here.{/if} A hopper never takes anything <i>out</i> of a shop chest, whatever the setting.
+
+      Chests placed beside a shop's chest would join it into a double chest: only people who may stock the shop can do that.
+  - question: How do I end a shop?
+    title: Ending a shop
+    text: |
+      <white>End this shop</white> in the back room (it asks first), or simply break its chest, sign or item frame as its owner or a manager. The chest and everything in it stay; only the shop ends. The log and reviews are kept for your statement.
+
+      {cmd:/market mine} → your shop's page → <white>Close every chest shop</white> ends all of them at once.
+  - question: A shop of mine is paused. Why?
+    title: Paused shops
+    text: |
+      Three reasons: you <white>paused it</white> yourself (click Open again); it has <white>no price</white> left; or its <white>rent was unpaid</white>, in which case paying it in the back room opens it again. Staff can also close a shop; then only staff reopen it, and you are told.

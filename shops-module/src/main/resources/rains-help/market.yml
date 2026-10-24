@@ -1,0 +1,82 @@
+id: market
+title: Player Shops
+summary: Buy from and sell to other players' chest shops — find them, trade at the chest or from afar, review them.
+intro: |
+  Other players run shops here, out of plain chests, at prices they choose themselves. I stay out of it, except to tell you that haggling with a chest is not supported. {run:/market} is how you find them.
+icon: CHEST
+category: Economy & trade
+order: 30
+module: shops
+aliases: [market, shops, stores, chestshop, chestshops, playershops, marketplace, bazaar, trading]
+keywords: [buy, sell, trade, price, stock, reviews, stars, remote, afar, search, counter, sign, frame]
+commands: [market]
+related: [market-setup, market-manage, market-money, market-world, shop]
+sections:
+  - question: What is a player shop?
+    title: What it is
+    text: |
+      A chest with an <white>item frame</white> on it showing what it trades, and a <white>[market]</white> sign saying what that costs. The owner stocks the chest; you pay, the goods change hands, the chest does the rest — even while its owner is asleep.
+
+      A shop may <white>sell</white> (you buy), <white>buy</white> (you sell it your stuff), or both. The price is for a <white>bundle</white>: a bundle of 16 for 40 means 16 items for 40, not 40 each.
+  - question: How do I buy something?
+    title: Buying at a shop
+    text: |
+      Walk up and <white>right-click</white> the chest, its sign or its item frame. A counter opens with the item, the price, the owner and the shop's rating. Click <white>Buy one bundle</white>, <white>Buy 8 bundles</white>, <white>Buy as much as you can</white>, or <white>Buy an amount…</white> to type a number.
+
+      Every button shows what it would cost before you click, and a button that cannot work is greyed out with the reason in it. You can also open the shop's page with the owner's head to see everything else that owner sells.
+  - question: How do I sell to a shop?
+    title: Selling to a shop
+    text: |
+      Some shops <i>buy</i> things — their sign says so, and the counter shows <white>Sell one bundle</white>, <white>Sell all you can</white> and <white>Sell an amount…</white>. You get the shop's buying price per bundle. The owner pays out of their own purse and the goods go into the chest.
+
+      A shop stops buying when its chest is full, when it has all it wants (owners can set a limit) or when its owner cannot pay. Search for who buys what with {cmd:/market sell <item>}.
+  - question: Why does the button say no?
+    title: When a trade is refused
+    text: |
+      The counter always tells you. The usual suspects: the shop is <white>sold out</white>; your <white>inventory is full</white>; <white>you cannot afford</white> it; the shop's chest is <white>full</white> or has all it wants; its <white>owner cannot pay</white> you; the shop is <white>paused</white>, closed by staff or paused for unpaid rent; or it is <white>your own shop</white> — you cannot trade with yourself.
+      {if:shops:partial-trades}If you ask for more than is possible, you get <white>as much as is possible</white> and are told what held it back.{else}If you ask for more than is possible, the whole trade is refused rather than cut down.{/if}
+      Somebody trading at the same chest at the same moment? Try again; trades go through one at a time.
+  - question: How do I find a shop?
+    title: Finding shops
+    text: |
+      {cmd:/market <item>} lists every shop selling it, <white>cheapest first</white> — the price is compared per item, so a bundle of 64 competes fairly with a bundle of 1. {cmd:/market sell <item>} lists shops that <i>buy</i> it, best-paying first. {cmd:/market browse} shows everything.
+
+      In the list: the first button switches between shops that sell and shops that buy, the hopper changes the order (best price, best rated, busiest, newest), the sign searches, and the eye shows shops that are sold out too — normally they are hidden. Right-click an entry for the whole shop.
+  - question: Can I trade without walking there?
+    title: Trading from afar
+    when: shops:remote-buying || shops:remote-selling
+    text: |
+      Yes, from the list: {if:shops:remote-buying}<white>buying</white> works from afar{/if}{if:shops:remote-buying && shops:remote-selling} and {/if}{if:shops:remote-selling}<white>selling</white> works from afar{/if}. Click a shop and its counter opens right in front of you — goods and money move exactly as if you stood at the chest. This only works for shops on the server you are on.
+
+      {if:!shops:remote-buying}Buying from afar is off: for buying you must stand at the shop's chest. {/if}{if:!shops:remote-selling}Selling from afar is off: bring your goods to the chest yourself.{/if}
+  - question: Can I go to a shop?
+    title: Travelling to a shop
+    when: shops:travel-to-shops
+    text: |
+      Yes. In the list, click a shop (shift-click if trading from afar is on for it) to travel to its chest — even on another server of the network. You stand still for <white>{setting:shops:travel-warmup|seconds}</white> first; move and the trip is cancelled.{if:shops:travel-price} Each trip costs <white>{setting:shops:travel-price|money}</white>, given back if the trip does not happen.{/if}
+
+      The shop's land still decides whether you may come: if its owner has shut the door, the trip is refused.
+  - question: Are shops on other servers listed?
+    title: Other servers
+    when: shops:browse-network
+    text: |
+      Yes. The list also shows shops of the other servers on this network, with their stock as it was at their last trade. You cannot trade with those from here — travel there first.
+  - question: Can I rate a shop?
+    title: Reviews
+    text: |
+      Yes, with one to five stars and a line of words of up to <white>{setting:shops:longest-review}</white> characters (or stars alone). Open the shop's counter and click <white>Reviews</white>, then <white>Write a review</white>.
+
+      You may review a shop only if you <white>traded there within the last {setting:shops:review-days|days}</white>, and never your own. One review per shop; writing a new one replaces the old. Search ranking by rating is fair: one glowing review from a friend does not beat forty honest fours.
+  - question: What floats over the chests?
+    title: Floating labels
+    when: shops:floating-lines
+    text: |
+      A shop shows its <white>item</white>, its <white>price</white> and its <white>name</white> floating over the chest, so you can window-shop from the street. Owners can switch any line off for their own shop. A shop that has run out shows <red>Sold out</red>.
+  - question: How do I read a shop's sign?
+    title: Reading the sign
+    text: |
+      Under <white>✦ Market ✦</white>: <green>Buy: 10</green> means you can buy a bundle for 10; <red>Buying: 4</red> means the shop pays 4 for a bundle; <green>B 10</green> with <red>S 4</red> means both. Then the bundle size and the item, and the owner's name at the bottom. <dark_red>✦ Closed ✦</dark_red> means the shop has ended.
+  - question: Can anyone just take a shop's stock?
+    title: Safe stock
+    text: |
+      No. Only a trade empties the chest: hoppers never take anything out, explosions, pistons, fire and mobs changing blocks leave shop blocks alone, and only the owner and their helpers open the chest — everybody else gets the counter. Breaking a shop's chest, sign or frame ends the shop, and only its owner or manager can do that.

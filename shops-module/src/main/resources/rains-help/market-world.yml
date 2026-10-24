@@ -1,0 +1,50 @@
+id: market-world
+title: The Market World
+summary: An endless market town with stall plots of your own, built on and rotated so everybody gets the best spot.
+intro: |
+  A whole town made of market streets, half-timbered houses and a square with a fountain. It is always noon there and never rains — I checked.
+icon: RED_WOOL
+category: Economy & trade
+order: 34
+module: shops
+when: market:market-world
+aliases: [marketworld, plots, plot, stall, stalls, claim, mall, marketsquare]
+keywords: [claim, plot, stall, build, rotate, rotation, home, square, free, street]
+related: [market, market-setup, market-money]
+sections:
+  - question: What is the market world?
+    title: What it is
+    text: |
+      A separate world: {run:/market} takes you straight there. It is made of market streets lined with <white>stall plots</white> (12 by 12 blocks, each with an awning or tent until built on), azalea hedges, half-timbered houses and a square with a fountain and benches. Lamps and lit windows glow at night, but the weather is a permanent sunny noon.
+      Chest shops anywhere else on the server work just the same: the market is where you can run yours among everybody else's.
+  - question: How do I get a plot?
+    title: Claiming a plot
+    text: |
+      Stand on a free plot and type {run:/market plot} or {cmd:/market claim}. <white>{setting:market:free-plots}</white> plot(s) are free; every further one costs <white>{setting:market:plot-price|money}</white>, once. You may own <white>{setting:market:most-plots}</white> plots; ranks can raise that limit. A bar on screen tells you if the plot you stand on is free, for sale or somebody's.
+  - question: Where is my plot? Can I go back?
+    title: Home
+    text: |
+      {run:/market home} takes you to the front of your (first) plot; {run:/market plot} lists all of yours and shows the plot you are standing on, with a button for each to go there.
+  - question: Who may build on a plot?
+    title: Building
+    text: |
+      You, on your own plot — up to <white>{setting:market:build-height}</white> blocks above the street (and a few blocks down). Your shop helpers may build there too. Streets, houses, the square and other people's plots belong to nobody: you cannot break, build, use buckets or open other people's chests there (shops themselves still trade with you as usual).
+      Nothing flows, spreads, burns, grows or explodes from one plot onto another.
+  - question: How do I set up shop on my plot?
+    title: Shops on a plot
+    text: |
+      Exactly like anywhere else: a chest, an item frame and a [market] sign — see {topic:market-setup}. Plots are just a pleasant, busy place for it. Chest shops on your plot move along with it when the stalls rotate.
+  - question: What is the rotation?
+    title: Rotation
+    when: market:rotation-days > 0
+    text: |
+      Every <white>{setting:market:rotation-days|days}</white> each <i>built</i> plot moves <white>one place nearer to the square</white>, and the one nearest it goes to the back — so everybody gets a turn at the best spot. Everything on the plot moves with it: blocks, chest contents, signs, item frames and your shops, turned to face the right street. You are told where your stall went, and {run:/market home} always finds it.
+  - question: Is the rotation safe?
+    title: Safety of rotation
+    when: market:rotation-days > 0
+    text: |
+      Before every rotation the world is backed up (the newest <white>{setting:market:backups-kept}</white> backups are kept), and every plot is read completely before any is written. If anything goes wrong, nothing changes and staff can see why in the log.
+  - question: Can I give a plot back?
+    title: Giving a plot up
+    text: |
+      Yes, with {cmd:/market plot} on the plot, <i>Give this plot up</i> — only when no chest shop is on it and its chests, item frames and stands are empty. It gets its empty stall back; whatever you built on it is taken down. Nothing is refunded.

@@ -1,0 +1,41 @@
+id: market-money
+title: Shop Money
+summary: What shops cost to open and keep, the server's cut of every trade, and price limits.
+intro: |
+  Money has a way of finding the exits. Here is where it leaves your wallet on the way to a shop — and what the server keeps from each trade.
+icon: GOLD_INGOT
+category: Economy & trade
+order: 33
+module: shops
+aliases: [rent, fees, shopcut, shoprent, shopprice, tax]
+keywords: [opening, price, cost, cut, sink, weekly, ahead, highest, ceiling, unpaid]
+related: [market, market-setup, market-manage]
+sections:
+  - question: What does opening a shop cost?
+    title: Opening fee
+    text: |
+      {if:shops:opening-price}<white>{setting:shops:opening-price|money}</white> for every new chest shop, taken when you write its sign. If you cannot pay, the sign is refused and nothing is taken. Re-writing a sign at a shop you already own is free.{else}Nothing: opening a shop is free here.{/if}
+  - question: How does rent work?
+    title: Rent
+    when: shops:rent-per-week
+    text: |
+      Each chest shop pays <white>{setting:shops:rent-per-week|money}</white> a week; the first week is part of the opening. When a week is up, the rent is taken from your balance automatically and you get a notice. If you cannot pay, the shop <white>pauses</white> — nothing is deleted, nothing is taken away. Pay the rent in the shop's back room and it opens again.
+  - question: Can I pay rent ahead?
+    title: Paying ahead
+    when: shops:rent-per-week
+    text: |
+      Yes: in the back room, <white>Rent</white> pays a week at a time, up to <white>{setting:shops:most-weeks-ahead}</white> weeks ahead of today — so a slip of the finger cannot swallow your fortune. Anybody may pay a shop's rent, not just its owner. A shop that is behind starts counting again from today.
+  - question: What is the server's cut?
+    title: The server's cut
+    when: shops:server-cut-percent > 0
+    text: |
+      Every trade has a cut of <white>{setting:shops:server-cut-percent|percent}</white> that nobody receives — the money simply leaves the economy. The one who <i>pays</i> pays the full price shown; the one who <i>is paid</i> receives it minus the cut. The counter shows "You pay" or "You get" with the right number, so you are never surprised. Your statement shows how much went to the server.
+  - question: Is there a price limit?
+    title: Highest price
+    when: shops:most-price
+    text: |
+      Yes: no bundle may be priced above <white>{setting:shops:most-price|money}</white>, whether you sell or buy. It exists against typos with six zeros. A shop that both buys and sells must pay less than it asks.
+  - question: What else costs money?
+    title: Other costs
+    text: |
+      {if:shops:travel-to-shops && shops:travel-price}Travelling to a shop from {cmd:/market} costs <white>{setting:shops:travel-price|money}</white> per trip; it is returned when the trip is cancelled or fails.{else}Travelling to a shop is free.{/if}{if:market:market-world && market:plot-price} A market plot beyond your free ones costs <white>{setting:market:plot-price|money}</white>, once.{/if} Staff with the fee bypass pay none of this.

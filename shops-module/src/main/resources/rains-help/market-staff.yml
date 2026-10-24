@@ -1,0 +1,39 @@
+id: market-staff
+title: Shops for Staff
+summary: Seeing and closing every shop, taking down reviews, the market's rotation — and what bypasses fees.
+intro: |
+  With great power comes the ability to close somebody's shop in front of their customers. Do try to be fair about it.
+icon: IRON_BARS
+category: Staff
+order: 35
+module: shops
+permission: rainsshops.admin
+aliases: [shopstaff, shopadmin, closeshop]
+keywords: [admin, close, reopen, remove, review, rotate, bypass, inspect, staff]
+related: [market, market-manage, market-world]
+sections:
+  - question: How do I see every shop?
+    title: Every shop
+    text: |
+      {cmd:/market admin} lists every chest shop on this server, by owner. Click one for its back room, right-click to travel there, shift-click to close or reopen it. In a back room you may change anything an owner can.
+  - question: How do I close a shop?
+    title: Closing shops
+    text: |
+      From the list (shift-click) or the shop's back room: <white>Close (staff)</white>. A shop closed by staff cannot be reopened by its owner, only by staff; the owner is told who closed it. Removing a shop leaves its chest and stock alone — you never delete anybody's stock. Everything you do here is written to the audit log.
+  - question: Can I take a review down?
+    title: Reviews
+    text: |
+      Yes: in a shop's reviews, shift-click a review to take it down.
+  - question: Can I build anywhere in the market?
+    title: Market world rights
+    text: |
+      With <white>rainsshops.admin</white> you may build and use anything in the market world, give any plot up, and rotate the stalls at once with {cmd:/market admin rotate}, due or not.
+  - question: Who pays no fees?
+    title: Fee bypass
+    text: |
+      Holders of <white>rainsshops.bypass.fees</white> pay no opening fee, no travel fee and no plot price. The permission nodes: <white>rainsshops.use</white> (trade and browse, everybody), <white>rainsshops.create</white> (open shops, everybody), <white>rainsshops.limit.N</white> and <white>rainsshops.limit.unlimited</white> (shop count), <white>rainsshops.plots.N</white> and <white>rainsshops.plots.unlimited</white> (plots).
+  - question: Where do I change the numbers?
+    title: Settings
+    permission: rainscore.settings
+    text: |
+      {cmd:/settings} has two pages for this: <white>Player shops</white> (opening, trading, money, finding) and <white>Market world</white> (plots and rotation). Changes apply at once and so do the guide pages.

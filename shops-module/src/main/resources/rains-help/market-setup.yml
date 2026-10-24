@@ -1,0 +1,60 @@
+id: market-setup
+title: Open a Shop
+summary: Turn a chest into your own shop with an item frame and a [market] sign — step by step.
+intro: |
+  A chest, an item frame, a sign. That is the whole business plan. The only difficult part is the sign, which is why I wrote it out in full.
+icon: OAK_SIGN
+category: Economy & trade
+order: 31
+module: shops
+aliases: [openshop, sellitems, setupshop, marketsign, opening, createshop]
+keywords: [sign, frame, chest, price, bundle, name, limit, container, barrel, how, start]
+related: [market, market-manage, market-money]
+sections:
+  - question: How do I set up a shop?
+    title: In three steps
+    text: |
+      <white>1.</white> Hang an <white>item frame</white> on a chest and put <i>what you sell</i> in it.
+      <white>2.</white> Put your stock in the chest.
+      <white>3.</white> Write a sign on it: <white>[market]</white> on the first line, the price on the second (more below), a bundle on the third, a name on the fourth if you like.
+
+      I rewrite the sign into something proper and lock it with wax. The item and price float over the chest and the shop appears in {cmd:/market}. {cmd:/market help} repeats these steps in chat.
+  - question: What do I write on the sign?
+    title: The sign's lines
+    text: |
+      <white>Line 1:</white> <white>[market]</white> (<white>[markt]</white> and <white>[shop]</white> work too).
+      <white>Line 2:</white> the price. A lone number, like <white>10</white>, means you <i>sell</i> for 10. <white>B 10</white> is the same. <white>S 4</white> means you <i>buy</i> from customers and pay 4. Both: <white>B 10 S 4</white>. (<white>K</white> and <white>V</white> work for kaufen/verkaufen.) Prices may be written like <white>1.5k</white>.
+      <white>Line 3:</white> the bundle, like <white>x16</white> — blank means one item per sale.
+      <white>Line 4:</white> the shop's name — blank names it after the item.
+  - question: Where may the sign go?
+    title: Where the sign sits
+    text: |
+      On the chest — a wall sign hanging on it. Also fine: a wall sign on the block <i>under</i> the chest (below its item frame), or a standing sign on top of the chest. Anywhere else I tell you the sign needs a chest.
+
+      The item is the one in the frame. No frame? The first thing in the chest is used, and I suggest hanging a frame anyway: you can change the item right there.
+  - question: What may be a shop, and where?
+    title: Chests and worlds
+    text: |
+      <white>Blocks:</white> {setting:shops:stock-containers}. Shulker boxes and ender chests never work, whatever that list says — a box can be carried off with its stock, and an ender chest belongs to whoever opens it.
+      {if:shops:worlds-without-shops}<white>Not in these worlds:</white> {setting:shops:worlds-without-shops}.{else}Every world is allowed, as far as this setting goes.{/if}
+      You also need the right to build there: shops go where you may build, so your own claim or a wilderness spot, not somebody's house.
+  - question: How many shops may I have?
+    title: Shop limit
+    text: |
+      {if:shops:most-chest-shops > 0}You may run <white>{setting:shops:most-chest-shops}</white> chest shops. Ranks can raise that number, and some ranks have no limit at all. The sign refuses once you are at your limit — end one to open another.{else}Nobody gets chest shops by default; only ranks that grant it may open them.{/if}
+  - question: What can I sell?
+    title: What counts as a ware
+    text: |
+      Any item, matched exactly: enchantments, names and all. A different enchantment is a different ware. Items <white>bound to a player</white> or <white>insured</white> cannot be sold — a shop hands out copies of its ware again and again, so those would be copied too.
+
+      Price rules: a price must not be above the server's highest price{if:shops:most-price} (<white>{setting:shops:most-price|money}</white> per bundle){/if}, and a shop that buys must not pay <i>more</i> than it sells for — otherwise people would sell it back to you forever. A bundle is 1 to 1728 items.
+  - question: What does it cost to open one?
+    title: Cost to open
+    text: |
+      {if:shops:opening-price}Setting up a shop costs <white>{setting:shops:opening-price|money}</white>, taken when the sign is written.{else}Opening a shop is free.{/if}{if:shops:rent-per-week} Each shop also pays <white>{setting:shops:rent-per-week|money}</white> rent a week, the first week included in the opening. See {topic:market-money}.{/if}
+  - question: How do I change the prices?
+    title: Changing prices
+    text: |
+      Two ways. Write the sign <i>again</i> with new lines — it re-prices the shop, and with a new item in the frame, re-stocks the ware. Or use the shop's back room: sneak, empty hand, right-click the chest, then click the price.
+
+      Setting a price to 0 stops that direction: a selling price of 0 means the shop no longer sells. Taking both away leaves nothing to trade, so the shop pauses.
