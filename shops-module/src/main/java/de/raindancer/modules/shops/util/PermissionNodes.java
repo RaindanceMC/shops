@@ -20,6 +20,11 @@ public final class PermissionNodes {
 
     public static final String UNLIMITED = "rainsshops.limit.unlimited";
 
+    /** {@code rainsshops.plots.<n>}: how many market plots; read through Core's NumberedLimit. */
+    public static final String PLOTS_PREFIX = "rainsshops.plots.";
+
+    public static final String PLOTS_UNLIMITED = "rainsshops.plots.unlimited";
+
     /** Opening a shop and travelling to one without paying for it. */
     public static final String NO_FEES = "rainsshops.bypass.fees";
 
@@ -35,6 +40,7 @@ public final class PermissionNodes {
                 new Permission(CREATE, "Open shops of one's own", PermissionDefault.TRUE),
                 // Declared FALSE so an operator is not quietly unlimited: an undeclared node is true for ops.
                 new Permission(UNLIMITED, "Open as many shops as one likes", PermissionDefault.FALSE),
+                new Permission(PLOTS_UNLIMITED, "Claim as many market plots as one likes", PermissionDefault.FALSE),
                 new Permission(NO_FEES, "Open shops and travel to them for free", PermissionDefault.OP),
                 new Permission(ADMIN, "Inspect, close, open and remove anybody's shop", PermissionDefault.OP));
     }

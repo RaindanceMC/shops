@@ -32,4 +32,7 @@ public interface IShopsScreensOpener {
 
     /** Staff: every shop on this server. */
     void admin(Player viewer);
+
+    /** The market world's plots: the one the viewer stands on, theirs, the way to the square. */
+    void plots(Player viewer);
 }

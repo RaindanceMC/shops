@@ -11,6 +11,8 @@ import de.raindancer.modules.api.FlexModule;
 import de.raindancer.modules.api.ModuleCommand;
 import de.raindancer.modules.api.ModuleContext;
 import de.raindancer.modules.api.ModuleInfo;
+import de.raindancer.modules.shops.listener.MarketGuardListener;
+import de.raindancer.modules.shops.listener.MarketWalkListener;
 import de.raindancer.modules.shops.listener.ShopFrameListener;
 import de.raindancer.modules.shops.listener.ShopGuardListener;
 import de.raindancer.modules.shops.listener.ShopSessionListener;
@@ -27,7 +29,14 @@ import de.raindancer.modules.shops.screen.ShopManageMenu;
 import de.raindancer.modules.shops.screen.StatementMenu;
 import de.raindancer.modules.shops.screen.StoreManageMenu;
 import de.raindancer.modules.shops.screen.StoreMenu;
+import de.raindancer.modules.shops.market.MarketDesigns;
+import de.raindancer.modules.shops.market.MarketGenerator;
+import de.raindancer.modules.shops.market.MarketLayout;
 import de.raindancer.modules.shops.service.EconomyTill;
+import de.raindancer.modules.shops.service.MarketPlots;
+import de.raindancer.modules.shops.service.MarketRotation;
+import de.raindancer.modules.shops.service.MarketWorld;
+import de.raindancer.modules.shops.store.PlotStore;
 import de.raindancer.modules.shops.service.NoticeService;
 import de.raindancer.modules.shops.service.OldShopClosing;
 import de.raindancer.modules.shops.service.ReviewService;
@@ -67,7 +76,9 @@ import java.util.function.LongSupplier;
 /**
  * Players' own shops, as a module: a chest with an item frame showing what it trades and a {@code [market]} sign saying
  * what it costs — one exact item each, sold from the chest, bought too if its owner likes — its item, price and name
- * floating over it, found and traded from afar through {@code /market}.
+ * floating over it, found and traded from afar through {@code /market}. Optionally a market world: endless streets of
+ * stall plots, houses and a square, generated; players claim plots and build their stalls; every so often the built
+ * plots rotate, so everybody gets a turn near the square.
  *
  * <h2>What is Core's, and what is this module's</h2>
  * Money is Core's economy seam, so any economy plugin pays; protection is Core's land, so a claim decides who may set
@@ -76,9 +87,10 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.4.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.5.0")
             .describedAs("Players' own chest shops: an item frame and a [market] sign on a chest, what it sells "
-                    + "floating over it, /market to find and trade from afar, reviews and statements")
+                    + "floating over it, /market to find and trade from afar, reviews and statements; a market "
+                    + "world of endless streets with stall plots that rotate")
             .by("Raindancer118");
 
     private LogChannel log;
@@ -97,6 +109,7 @@ public final class ShopsModule implements FlexModule {
         log = context.log();
         Server server = context.plugin().getServer();
         SettingsStore<ShopsSettings> settings = context.settings(ShopsSettings.class, ShopsSettings.DEFAULTS);
+        SettingsStore<MarketSettings> marketSettings = context.settings(MarketSettings.class, MarketSettings.DEFAULTS);
         context.core().messages().defineFrom(ShopsModule.class.getResourceAsStream("messages.yml"),
                 context.chat().brand()::chatPrefix);
         context.core().messages().seriousFrom(ShopsModule.class.getResourceAsStream("messages-serious.yml"));
@@ -115,10 +128,16 @@ public final class ShopsModule implements FlexModule {
                 context.core()::serverName);
         // Off the server thread, but waited for: until the shops are known, a shop's chest is just a chest, and
         // anybody could open it.
+        MarketLayout layout = new MarketLayout();
+        MarketDesigns designs = new MarketDesigns(layout, new de.raindancer.modules.shops.store.PrefabFiles(
+                context.plugin().getDataFolder().toPath().resolve("market"), log).read());
+        MarketPlots plots = new MarketPlots(context.plugin(), layout, designs, new PlotStore(database), writer, book,
+                context.core().audit(), context.core()::serverName, marketSettings.current(), clock);
         List<Shop> retired;
         var loading = Executors.newSingleThreadExecutor();
         try {
             retired = CompletableFuture.supplyAsync(() -> book.load(clock.getAsLong()), loading).join();
+            CompletableFuture.runAsync(plots::load, loading).join();
         } finally {
             loading.shutdown();
         }
@@ -148,10 +167,17 @@ public final class ShopsModule implements FlexModule {
         ShopTravel going = new ShopTravel(context.plugin(), travel, context.core().land(), context.core().messages(),
                 locator, context.core().networkTravel(), now);
 
+        MarketWorld marketWorld = new MarketWorld(new MarketGenerator(designs), marketSettings::current, log);
+        MarketRotation rotation = new MarketRotation(context.plugin(), plots, book, context.core().chunks(), notices,
+                marketSettings::current, moved -> {
+                    displays.show(moved);
+                    trades.recount(moved, displays::show);
+                }, context.plugin().getDataFolder().toPath().resolve("market-backups"), clock, log);
         LiveScreens screens = new LiveScreens();
         ShopsServices services = new ShopsServices(context.plugin(), server, context.core(), log,
                 context.core().messages(), context.chat().brand(), settings::current, settings, book, locator,
-                wares, keeper, trades, notices, reviews, going, displays, fixtures, retiredKeepers, screens);
+                wares, keeper, trades, notices, reviews, going, displays, fixtures, retiredKeepers,
+                marketSettings::current, plots, marketWorld, rotation, screens);
         screens.services = services;
 
         settings.onChange(fresh -> {
@@ -170,6 +196,23 @@ public final class ShopsModule implements FlexModule {
         context.listener(new ShopSignListener(services));
         context.listener(new ShopFrameListener(services));
         context.listener(new ShopWorldListener(services));
+        context.listener(new MarketGuardListener(services));
+        context.listener(new MarketWalkListener(services));
+
+        // The market world, when it is on: made or loaded now, and again whenever it is switched on.
+        marketWorld.open();
+        marketSettings.onChange(fresh -> {
+            plots.market(fresh);
+            if (fresh.enabled()) {
+                Scheduling.global(context.plugin(), marketWorld::open);
+            }
+        });
+        // The stalls rotate at a time, not at a click: is one due? Asked off the thread, rotated on it.
+        timers.add(Scheduling.asyncTimer(context.plugin(), 300, 60 * 30, task -> {
+            if (!rotation.isRunning() && rotation.due()) {
+                Scheduling.global(context.plugin(), () -> marketWorld.world().ifPresent(rotation::rotate));
+            }
+        }));
         context.listener(new ShopSessionListener(services));
 
         // Rent falls due at a time, not at a click.
@@ -256,6 +299,11 @@ public final class ShopsModule implements FlexModule {
         @Override
         public void admin(Player viewer) {
             new AdminShopsMenu(services, viewer, null).open();
+        }
+
+        @Override
+        public void plots(Player viewer) {
+            new de.raindancer.modules.shops.screen.MarketPlotMenu(services, viewer, null).open();
         }
     }
 

@@ -14,6 +14,9 @@ import de.raindancer.modules.shops.service.ShopLocator;
 import de.raindancer.modules.shops.service.ShopTrades;
 import de.raindancer.modules.shops.service.ShopTravel;
 import de.raindancer.modules.shops.service.Wares;
+import de.raindancer.modules.shops.service.MarketPlots;
+import de.raindancer.modules.shops.service.MarketRotation;
+import de.raindancer.modules.shops.service.MarketWorld;
 import de.raindancer.modules.shops.visual.RetiredShopkeepers;
 import de.raindancer.modules.shops.visual.ShopDisplays;
 import de.raindancer.modules.shops.visual.ShopFixtures;
@@ -49,6 +52,10 @@ public record ShopsServices(
         ShopDisplays displays,
         ShopFixtures fixtures,
         RetiredShopkeepers retired,
+        Supplier<MarketSettings> market,
+        MarketPlots plots,
+        MarketWorld marketWorld,
+        MarketRotation rotation,
         IShopsScreensOpener screens) {
 
     public ShopsSettings config() {

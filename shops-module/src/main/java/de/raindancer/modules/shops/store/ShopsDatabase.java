@@ -81,7 +81,13 @@ public final class ShopsDatabase {
             "ALTER TABLE offer ADD COLUMN sign TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE offer ADD COLUMN frame TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE offer ADD COLUMN floating INTEGER NOT NULL DEFAULT 7",
-            "ALTER TABLE offer ADD COLUMN retired BIGINT NOT NULL DEFAULT 0");
+            "ALTER TABLE offer ADD COLUMN retired BIGINT NOT NULL DEFAULT 0",
+            // 0.5.0: the market world's stall plots, per server, and when its stalls last rotated.
+            "CREATE TABLE market_plot (server TEXT NOT NULL, plot TEXT NOT NULL, owner TEXT NOT NULL, "
+                    + "owner_name TEXT NOT NULL, claimed BIGINT NOT NULL, paid BIGINT NOT NULL, "
+                    + "PRIMARY KEY (server, plot))",
+            "CREATE INDEX market_plot_owner ON market_plot (owner)",
+            "CREATE TABLE market_state (server TEXT PRIMARY KEY, last_rotation BIGINT NOT NULL)");
 
     private ShopsDatabase() {
     }

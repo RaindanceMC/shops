@@ -22,7 +22,7 @@ class EveryKeyExistsTest {
 
     /** Strings that look like keys and are not: the economy sources money is booked under. */
     private static final Set<String> SOURCES = Set.of("shops.buy", "shops.sale", "shops.purchase", "shops.payout",
-            "shops.opening", "shops.rent", "shops.travel", "shops.refund");
+            "shops.opening", "shops.rent", "shops.travel", "shops.refund", "shops.plot");
 
     private static YamlConfiguration wording(String file) {
         return YamlConfiguration.loadConfiguration(

@@ -34,6 +34,12 @@ shops:
     bad-stars: "<red>Choose one to five stars."
     no-chests: "<red>This shop has no chest any more."
     no-remote: "<red>Buying from afar is switched off. Visit the shop."
+    too-many-plots: "<red>You have reached your plot limit."
+    plot-not-empty: "<red>End the plot's chest shops and empty its chests, frames and stands first."
+  market:
+    closed: "<red>There is no market world on this server."
+    not-yours: "<red>This plot is not yours.</red> <gray>Claim a free plot with <white>/market plot</white>."
+    claimed: "<green>Plot <white><plot></white> is yours<gray> (paid: <paid>)</gray>."
   guard:
     not-yours: "<red>This is part of <white><shop></white>. You may not break it."
     not-beside: "<red>That would join the chest of <white><shop></white>."

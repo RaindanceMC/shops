@@ -79,6 +79,27 @@ shops:
     no-travel: "<red>Travelling to shops is switched off here."
     no-chests: "<red>This shop lost its chest. A shop without a chest is just a sign with ambitions."
     no-remote: "<red>Buying from afar is switched off here — visit the shop's chest."
+    no-market: "<red>There is no market world on this server."
+    not-a-plot: "<red>That is not a stall plot.</red> <gray>They line the market streets, twelve by twelve."
+    plot-taken: "<red>Somebody got here first — this plot is taken."
+    too-many-plots: "<red>You have as many plots as you may. Even market barons have limits."
+    cannot-pay-for-plot: "<red>You cannot pay for another plot just now."
+    not-your-plot: "<red>That plot is not yours."
+    plot-not-empty: "<red>Not while something is left on it:</red> <gray>end its chest shops and empty its chests, frames and stands first."
+
+  market:
+    closed: "<red>No market world here.</red> <gray>The shops are still all in <white>/market browse</white>."
+    welcome: "<gold>Welcome to the market!</gold> <gray>Walk the streets, or claim a stall plot of your own: stand on one and type <white>/market plot</white>."
+    not-yours: "<red>Not your plot.</red> <gray>Claim a free one: <white>/market plot</white>."
+    claimed: "<green>Plot <white><plot></white> is yours<gray> (paid: <paid>)</gray>. Build your stall and set up chest shops on it."
+    released: "<gray>Plot <white><plot></white> is free again, with its empty stall back."
+    bar-free: "<green>Free plot</green> <gray>— yours for nothing: <white>/market plot"
+    bar-for-sale: "<yellow>Free plot</yellow> <gray>— yours for <white><price></white>: <white>/market plot"
+    bar-owned: "<gold><owner></gold><gray>'s stall"
+    bar-yours: "<green>Your stall</green> <gray>(<plot>)"
+    rotating: "<gold>The market's stalls are moving round…</gold> <gray>a moment, please."
+    rotated: "<green>The stalls moved one place round:</green> <gray><count> plot(s)."
+    rotate-failed: "<red>The stalls could not move round; nothing was changed. Staff can see why in the log."
 
   guard:
     not-yours: "<red>That is part of <white><shop></white>, and it is not yours to break."
@@ -121,4 +142,5 @@ shops:
     reopened: "<green>Staff (<white><who></white>) reopened your shop <white><shop></white> — open it in its back room."
     removed: "<red>Staff (<white><who></white>) removed <white><shop></white>. Its stock is still in its chest."
     rebuilt: "<gold>Shops work differently now:</gold> <gray>your old shop <white><shop></white> is closed and its stock is still in the chest (rent given back: <gold><amount></gold>). Set up a new one: <white>/market help</white>."
+    plot-moved: "<gold>Your stall moved round:</gold> <gray>it is now plot <white><shop></white>, <white><items></white> blocks from the square. <white>/market home</white> takes you there."
     chest-shops: "<gold>Shopkeepers are retired — a chest is the shop now:</gold> <gray><white><shop></white> is closed, its stock still in its chests (rent given back: <gold><amount></gold>). Hang an item frame on a chest and write a <white>[market]</white> sign: <white>/market help</white>."

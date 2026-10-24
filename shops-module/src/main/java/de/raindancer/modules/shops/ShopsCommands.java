@@ -24,12 +24,16 @@ public final class ShopsCommands {
         return List.of(
                 ModuleCommand.of("market", "Players' shops: find one, or learn to set up your own",
                                 new MarketCommand(ShopsCommands::require))
-                        .taking("[what] — every shop selling it, cheapest first",
+                        .taking("— to the market world (or every shop, when there is none)",
+                                "[what] / browse [what] — every shop selling it, cheapest first",
                                 "sell <what> — every shop buying it, best paying first",
                                 "mine — your shops",
+                                "plot — the market plot you stand on: claim it, give it up; your plots",
+                                "claim — the market plot you stand on becomes yours",
+                                "home — to your market plot",
                                 "help — how to set up a chest shop with an item frame and a [market] sign",
                                 "statement — what your shops earned",
-                                "admin — every shop on this server")
+                                "admin — every shop on this server; admin rotate — the market's stalls move round now")
                         .needing(PermissionNodes.USE));
     }
 
