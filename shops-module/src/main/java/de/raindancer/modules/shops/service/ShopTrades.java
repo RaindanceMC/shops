@@ -9,6 +9,7 @@ import de.raindancer.modules.shops.model.Quote;
 import de.raindancer.modules.shops.model.Refusal;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Spot;
+import de.raindancer.modules.shops.rules.RemoteRule;
 import de.raindancer.modules.shops.rules.TradeRule;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -43,6 +44,7 @@ public final class ShopTrades implements IShopsService {
     private final TradeDesk desk;
     private final NoticeService notices;
     private final LongSupplier clock;
+    private final RemoteRule remoteRule = new RemoteRule();
     private volatile ShopsSettings settings;
 
     public ShopTrades(ChunkHolds chunks, ShopBook book, ShopLocator locator, Wares wares,
@@ -67,9 +69,14 @@ public final class ShopTrades implements IShopsService {
         return desk;
     }
 
-    /** Whether trading from /market is on. */
-    public boolean remote() {
-        return settings.remoteTrades();
+    /** Whether customers may trade this way from /market, without walking to the shop. */
+    public boolean remote(TradeSide side) {
+        return remoteRule.fromAfar(side, settings.remoteBuying(), settings.remoteSelling());
+    }
+
+    /** Whether customers may trade from /market at all, either way. */
+    public boolean remoteAtAll() {
+        return remoteRule.anyFromAfar(settings.remoteBuying(), settings.remoteSelling());
     }
 
     /** What both sides of a trade are, when they can be had here and now. */
@@ -81,9 +88,9 @@ public final class ShopTrades implements IShopsService {
      *            there counts: in person means within reach of the shop's own chest, wherever it was opened
      */
     public TradeDesk.Outcome trade(Player customer, Shop asked, TradeSide side, int bundles, Location via) {
-        Counter counter = counter(customer, asked, via);
+        Counter counter = counter(customer, asked, side, via);
         if (counter.shop() == null) {
-            return new TradeDesk.Outcome(refusalOf(customer, asked, via), Quote.NOTHING, false, null);
+            return new TradeDesk.Outcome(refusalOf(customer, asked, side, via), Quote.NOTHING, false, null);
         }
         TradeDesk.Outcome outcome = desk.trade(counter.shop(), customer.getUniqueId(), customer.getName(), side,
                 bundles, counter.customer(), counter.stock());
@@ -97,9 +104,9 @@ public final class ShopTrades implements IShopsService {
 
     /** What a trade of so many bundles would do now — for greying a button and saying why. */
     public TradeRule.Verdict preview(Player customer, Shop asked, TradeSide side, int bundles, Location via) {
-        Counter counter = counter(customer, asked, via);
+        Counter counter = counter(customer, asked, side, via);
         if (counter.shop() == null) {
-            Refusal why = refusalOf(customer, asked, via);
+            Refusal why = refusalOf(customer, asked, side, via);
             return new TradeRule.Verdict(0, why, false, why);
         }
         return desk.preview(counter.shop(), customer.getUniqueId(), side, bundles, counter.customer(),
@@ -107,7 +114,7 @@ public final class ShopTrades implements IShopsService {
     }
 
     public int most(Player customer, Shop asked, TradeSide side, Location via) {
-        Counter counter = counter(customer, asked, via);
+        Counter counter = counter(customer, asked, side, via);
         return counter.shop() == null ? 0
                 : desk.most(counter.shop(), customer.getUniqueId(), side, counter.customer(), counter.stock());
     }
@@ -144,8 +151,8 @@ public final class ShopTrades implements IShopsService {
         return chunks.forAMoment(wanted);
     }
 
-    private Counter counter(Player customer, Shop asked, Location via) {
-        if (refusalOf(customer, asked, via) != null) {
+    private Counter counter(Player customer, Shop asked, TradeSide side, Location via) {
+        if (refusalOf(customer, asked, side, via) != null) {
             return new Counter(null, null, null);
         }
         Shop shop = book.index().byId(asked.id()).orElseThrow();
@@ -195,23 +202,21 @@ public final class ShopTrades implements IShopsService {
     }
 
     /** Why this trade cannot even be looked at from here; null when it can. */
-    private Refusal refusalOf(Player customer, Shop asked, Location via) {
+    private Refusal refusalOf(Player customer, Shop asked, TradeSide side, Location via) {
         Optional<Shop> shop = book.index().byId(asked.id());
         if (shop.isEmpty()) {
             return book.anyShop(asked.id()).isPresent() ? Refusal.NOT_HERE : Refusal.GONE;
         }
-        if (via == null) {
-            if (!settings.remoteTrades()) {
-                return Refusal.NO_REMOTE;
-            }
-        } else {
+        boolean fromAfar = true;
+        if (via != null) {
             Location from = customer.getLocation();
             Optional<Location> chest = locator.location(shop.get().spot()).map(at -> at.add(0.5, 0.5, 0.5));
-            boolean near = chest.isPresent() && from.getWorld().equals(chest.get().getWorld())
-                    && from.distanceSquared(chest.get()) <= REACH * REACH;
-            if (!near && !settings.remoteTrades()) {
-                return Refusal.TOO_FAR;
-            }
+            fromAfar = chest.isEmpty() || !from.getWorld().equals(chest.get().getWorld())
+                    || from.distanceSquared(chest.get()) > REACH * REACH;
+        }
+        Refusal remote = remoteRule.refusal(fromAfar, side, settings.remoteBuying(), settings.remoteSelling());
+        if (remote != null) {
+            return remote;
         }
         if (shop.get().chests().isEmpty()) {
             return Refusal.NO_CHESTS;

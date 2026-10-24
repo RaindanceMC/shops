@@ -47,12 +47,7 @@ public final class MarketWorld implements IShopsService {
         return now.enabled() ? Optional.ofNullable(Bukkit.getWorld(now.world())) : Optional.empty();
     }
 
-    /**
-     * Loads the world, making it the first time. On the global thread; refused on Folia, which makes no worlds. The
-     * game rules are belt and braces — the market's own listener refuses mobs, fire and griefing anyway — and still
-     * set through Bukkit's named constants, as every module here does until Paper removes them.
-     */
-    @SuppressWarnings("removal")
+    /** Loads the world, making it the first time, and makes it sunny. On the global thread; refused on Folia. */
     public Optional<World> open() {
         MarketSettings now = market.get();
         if (!now.enabled()) {
@@ -60,6 +55,7 @@ public final class MarketWorld implements IShopsService {
         }
         World loaded = Bukkit.getWorld(now.world());
         if (loaded != null) {
+            sunny(loaded);
             return Optional.of(loaded);
         }
         if (Scheduling.isFolia()) {
@@ -73,15 +69,30 @@ public final class MarketWorld implements IShopsService {
             log.warn("Could not make or load the market world '{}'.", now.world());
             return Optional.empty();
         }
-        made.setGameRule(GameRule.DO_MOB_SPAWNING, false);
-        made.setGameRule(GameRule.DO_FIRE_TICK, false);
-        made.setGameRule(GameRule.MOB_GRIEFING, false);
-        made.setGameRule(GameRule.DO_PATROL_SPAWNING, false);
-        made.setGameRule(GameRule.DO_TRADER_SPAWNING, false);
-        made.setGameRule(GameRule.DO_INSOMNIA, false);
         made.setSpawnLocation(generator.getFixedSpawnLocation(made, new java.util.Random()));
+        sunny(made);
         log.info("The market world '{}' is open.", now.world());
         return Optional.of(made);
+    }
+
+    /**
+     * A sunny noon for good: the day stands still, the weather never turns, no mob spawns by itself. Set on every
+     * start, so a world an owner has fiddled with comes back to it.
+     */
+    @SuppressWarnings("removal")
+    public void sunny(World world) {
+        world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        world.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+        world.setGameRule(GameRule.DO_FIRE_TICK, false);
+        world.setGameRule(GameRule.MOB_GRIEFING, false);
+        world.setGameRule(GameRule.DO_PATROL_SPAWNING, false);
+        world.setGameRule(GameRule.DO_TRADER_SPAWNING, false);
+        world.setGameRule(GameRule.DO_INSOMNIA, false);
+        world.setTime(de.raindancer.modules.shops.rules.MarketSkyRule.NOON);
+        world.setStorm(false);
+        world.setThundering(false);
+        world.setClearWeatherDuration(Integer.MAX_VALUE);
     }
 
     /** Off to the market square. */

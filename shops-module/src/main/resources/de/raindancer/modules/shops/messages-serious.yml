@@ -34,6 +34,7 @@ shops:
     bad-stars: "<red>Choose one to five stars."
     no-chests: "<red>This shop has no chest any more."
     no-remote: "<red>Buying from afar is switched off. Visit the shop."
+    no-remote-selling: "<red>Selling from afar is switched off. Visit the shop."
     too-many-plots: "<red>You have reached your plot limit."
     plot-not-empty: "<red>End the plot's chest shops and empty its chests, frames and stands first."
   market:

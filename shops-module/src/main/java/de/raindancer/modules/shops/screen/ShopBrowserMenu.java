@@ -79,7 +79,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     protected ItemStack icon(Listing listing) {
         List<String> lore = new ArrayList<>(Lines.listing(listing));
         lore.add("");
-        boolean remote = listing.here() && services.trades().remote();
+        boolean remote = listing.here() && services.trades().remote(side);
         if (remote) {
             lore.add("<yellow>Click to trade from here");
         }
@@ -100,7 +100,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
                     () -> services.refuse(viewer, Refusal.GONE));
             return;
         }
-        if (!event.isShiftClick() && listing.here() && services.trades().remote()) {
+        if (!event.isShiftClick() && listing.here() && services.trades().remote(side)) {
             services.trades().prepare(listing.shop()).thenRun(() -> Scheduling.entity(services.plugin(), viewer,
                     () -> new ShopFrontMenu(services, viewer, this, listing.shop(), null).open()));
             return;

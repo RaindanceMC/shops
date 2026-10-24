@@ -39,11 +39,13 @@ import java.util.UUID;
 /**
  * The market world's rules: a player builds only on their own plot, up to its height; the streets, the houses, the
  * square and other people's plots are nobody's to change. Nothing spreads, burns, explodes or flows from one plot onto
- * another, and no mob spawns by itself. Staff may do anything.
+ * another. It is always a sunny noon there, and no mob comes into being but one staff summon on purpose. Staff may do
+ * anything else too.
  */
 public final class MarketGuardListener implements IShopsListener {
 
     private final ShopsServices services;
+    private final de.raindancer.modules.shops.rules.MarketSkyRule sky = new de.raindancer.modules.shops.rules.MarketSkyRule();
 
     public MarketGuardListener(ShopsServices services) {
         this.services = services;
@@ -255,7 +257,22 @@ public final class MarketGuardListener implements IShopsListener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent event) {
         if (services.plots().isMarket(event.getLocation().getWorld())
-                && event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
+                && !sky.maySpawn(event.getEntity() instanceof org.bukkit.entity.Mob, event.getSpawnReason())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /** Never rain, never thunder — by the weather or by a command. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onWeather(org.bukkit.event.weather.WeatherChangeEvent event) {
+        if (services.plots().isMarket(event.getWorld()) && !sky.mayChangeWeather(event.toWeatherState())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onThunder(org.bukkit.event.weather.ThunderChangeEvent event) {
+        if (services.plots().isMarket(event.getWorld()) && !sky.mayChangeWeather(event.toThunderState())) {
             event.setCancelled(true);
         }
     }

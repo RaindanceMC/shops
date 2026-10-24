@@ -79,6 +79,7 @@ shops:
     no-travel: "<red>Travelling to shops is switched off here."
     no-chests: "<red>This shop lost its chest. A shop without a chest is just a sign with ambitions."
     no-remote: "<red>Buying from afar is switched off here — visit the shop's chest."
+    no-remote-selling: "<red>Selling from afar is switched off here — bring it to the shop's chest yourself."
     no-market: "<red>There is no market world on this server."
     not-a-plot: "<red>That is not a stall plot.</red> <gray>They line the market streets, twelve by twelve."
     plot-taken: "<red>Somebody got here first — this plot is taken."

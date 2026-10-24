@@ -104,11 +104,17 @@ public record ShopsSettings(
         @Key("keep-trades-days")
         int keepTradesDays,
 
-        @In("shops/trading") @Title("Trade from /market")
-        @Describe("Whether customers may buy and sell from /market without walking to the shop, as long as its chest "
-                + "is on this server. Off, /market only finds shops and takes you there.")
-        @Key("remote-trades")
-        boolean remoteTrades,
+        @In("shops/trading") @Title("Buy from afar")
+        @Describe("Whether customers may buy from a shop through /market without walking to it, as long as its chest "
+                + "is on this server. Off, they buy at the shop's chest; /market still finds shops and takes you there.")
+        @Key("remote-buying")
+        boolean remoteBuying,
+
+        @In("shops/trading") @Title("Sell from afar")
+        @Describe("Whether customers may sell to a shop through /market without walking to it, as long as its chest is "
+                + "on this server. Off, they sell at the shop's chest.")
+        @Key("remote-selling")
+        boolean remoteSelling,
 
         @In("shops/trading") @Title("Days a customer may review after trading") @Range(min = 1, max = 365)
         @Describe("Only somebody who traded at a shop within this many days may review it.")
@@ -157,7 +163,7 @@ public record ShopsSettings(
     public static final ShopsSettings DEFAULTS = new ShopsSettings(
             List.of("CHEST", "TRAPPED_CHEST", "BARREL"), List.of(), 27, 24,
             "0", "0", 8, 0, "0",
-            true, true, true, 180, true, 30, 120,
+            true, true, true, 180, true, true, 30, 120,
             true, true, 3, "0", true, true);
 
     public int cutPercent() {
@@ -196,49 +202,56 @@ public record ShopsSettings(
     public ShopsSettings withServerCutPercent(int percent) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, percent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floatingLines);
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
     }
 
     public ShopsSettings withPartialTrades(boolean partial) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partial, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floatingLines);
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
     }
 
     public ShopsSettings withRentPerWeek(String rent) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rent,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floatingLines);
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
     }
 
     public ShopsSettings withOpeningPrice(String price) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, price, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floatingLines);
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
     }
 
     public ShopsSettings withMostChestShops(int most) {
         return new ShopsSettings(containers, closedWorlds, most, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floatingLines);
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
     }
 
-    public ShopsSettings withRemoteTrades(boolean remote) {
+    public ShopsSettings withRemoteSelling(boolean remote) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remote, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floatingLines);
+                keepTradesDays, remoteBuying, remote, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+    }
+
+    public ShopsSettings withRemoteBuying(boolean remote) {
+        return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
+                mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
+                keepTradesDays, remote, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
     }
 
     public ShopsSettings withFloatingLines(boolean floating) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
-                keepTradesDays, remoteTrades, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
                 travelPrice, styledNames, floating);
     }
 

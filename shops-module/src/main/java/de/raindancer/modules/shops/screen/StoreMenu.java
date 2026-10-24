@@ -71,7 +71,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
         lore.add("");
         boolean manager = store().mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer);
         lore.add(!listing.here() ? "<gray>On another server" : manager ? "<yellow>Click for its back room"
-                : via == null && !services.trades().remote() ? "<gray>Buy it at its chest" : "<yellow>Click to trade");
+                : via == null && !services.trades().remoteAtAll() ? "<gray>Trade at its chest" : "<yellow>Click to trade");
         return Lines.ware(services, shop, "<white>" + Text.literal(shop.ware().label()), lore);
     }
 

@@ -13,7 +13,7 @@ public enum Refusal {
     // Reviews
     NOT_A_CUSTOMER, REVIEW_TOO_LONG, BAD_STARS, NOT_FOR_SALE,
     // Travel and trading from afar
-    NOT_HERE, TOO_FAR, NO_TRAVEL, NO_CHESTS, NO_REMOTE,
+    NOT_HERE, TOO_FAR, NO_TRAVEL, NO_CHESTS, NO_REMOTE, NO_REMOTE_SELLING,
     // The market world and its plots
     NO_MARKET, NOT_A_PLOT, PLOT_TAKEN, TOO_MANY_PLOTS, CANNOT_PAY_FOR_PLOT, NOT_YOUR_PLOT, PLOT_NOT_EMPTY;
 

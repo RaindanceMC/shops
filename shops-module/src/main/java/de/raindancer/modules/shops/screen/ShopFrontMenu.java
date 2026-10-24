@@ -159,9 +159,12 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
             services.core().effects().play(viewer.getUniqueId(), Cues.NO);
             services.refuse(viewer, outcome.refusal());
         }
-        if (viewer.getOpenInventory().getTopInventory().getHolder(false) == this) {
+        // A trade from afar ends a moment later: a player who has closed the counter meanwhile is not shown it again.
+        org.bukkit.inventory.InventoryView open = viewer.getOpenInventory();
+        if (open.getTopInventory().getHolder(false) == this) {
             refresh();
-        } else {
+        } else if (open.getType() != org.bukkit.event.inventory.InventoryType.CRAFTING
+                && open.getType() != org.bukkit.event.inventory.InventoryType.CREATIVE) {
             open();
         }
     }
