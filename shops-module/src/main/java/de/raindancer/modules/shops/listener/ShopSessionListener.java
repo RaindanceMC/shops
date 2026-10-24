@@ -9,7 +9,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.util.UUID;
 
-/** At join: what happened at one's shops while away, a moment after the join lines. On leaving: linking ends. */
+/** At join: what happened at one's shops while away, a moment after the join lines. */
 public final class ShopSessionListener implements IShopsListener {
 
     private static final long SETTLE_TICKS = 60;
@@ -20,15 +20,10 @@ public final class ShopSessionListener implements IShopsListener {
         this.services = services;
     }
 
-    /** Linking chests ends when they go; what waits for them lives in the database. */
+    /** What waits for them lives in the database. */
     @Override
     public void forget(UUID player) {
-        services.linking().stop(player);
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
-        forget(event.getPlayer().getUniqueId());
+        // Remembers nobody.
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

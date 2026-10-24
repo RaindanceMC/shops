@@ -1,13 +1,11 @@
 package de.raindancer.modules.shops.listener;
 
 import de.raindancer.modules.shops.ShopsServices;
-import de.raindancer.modules.shops.model.Answer;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.rules.ChestClickRule;
-import de.raindancer.modules.shops.rules.LinkRule;
 import de.raindancer.modules.shops.util.PermissionNodes;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,9 +19,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Clicking a container. While linking, a click links the chest to the offer or unlinks it. Otherwise a stock chest is
- * the shop's back room: its staff open it to stock it (managers sneaking with an empty hand get the offer's settings;
- * with something in hand it is placed as usual), and a customer is sent to the shopkeeper.
+ * Clicking a chest shop's chest or its sign. A customer gets the counter. The shop's staff open the chest to stock it;
+ * a manager sneaking with an empty hand — or clicking the sign — gets the shop's back room.
  */
 public final class ShopUseListener implements IShopsListener {
 
@@ -36,12 +33,12 @@ public final class ShopUseListener implements IShopsListener {
 
     @Override
     public void forget(UUID player) {
-        services.linking().stop(player);
+        // Remembers nobody.
     }
 
     /**
-     * At LOWEST and cancelled here: Core's land protection, at LOW, refuses visitors clicking containers in a claim
-     * and would tell an owner linking their own chest that they may not. It skips cancelled events.
+     * At LOWEST and cancelled here: Core's land protection, at LOW, refuses visitors clicking containers in a claim.
+     * It skips cancelled events.
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onClick(PlayerInteractEvent event) {
@@ -52,71 +49,52 @@ public final class ShopUseListener implements IShopsListener {
         if (block == null) {
             return;
         }
-        Player player = event.getPlayer();
-        long now = System.currentTimeMillis();
-        Optional<UUID> linking = services.linking().offerOf(player.getUniqueId(), now);
-        if (linking.isPresent() && block.getState(false) instanceof Container) {
-            event.setCancelled(true);
-            if (event.getHand() == EquipmentSlot.HAND) {
-                link(player, linking.get(), block, now);
-            }
-            return;
-        }
-        Optional<Shop> found = services.locator().shopAt(block);
+        Optional<Shop> bySign = services.locator().shopOfSign(block);
+        Optional<Shop> found = bySign.or(() -> services.locator().shopAt(block));
         if (found.isEmpty()) {
             return;
         }
         Shop shop = found.get();
+        Player player = event.getPlayer();
         boolean staff = services.book().staffOf(shop, player.getUniqueId())
                 || player.hasPermission(PermissionNodes.ADMIN);
-        if (event.getHand() != EquipmentSlot.HAND) {
-            // The off hand's half of the same click: quiet for a customer, so Core does not refuse it out loud.
-            if (!staff) {
-                event.setCancelled(true);
-            }
-            return;
-        }
         boolean manager = services.book().managerOf(shop, player.getUniqueId())
                 || player.hasPermission(PermissionNodes.ADMIN);
-        switch (clicks.decide(staff, manager, player.isSneaking(),
-                player.getInventory().getItemInMainHand().getType().isAir())) {
-            case BACK_ROOM -> {
-                event.setCancelled(true);
-                services.screens().manage(player, shop);
-                return;
-            }
-            case AS_THE_GAME_DOES -> {
-                // Stocking it, or putting a frame or a sign on it: the chest is the staff's to use as any chest.
-                return;
-            }
-            case TO_THE_SHOPKEEPER -> event.setCancelled(true);
-        }
-        String store = services.book().store(shop.store()).map(de.raindancer.modules.shops.model.Store::name)
-                .orElse(shop.ownerName());
-        services.messages().send(player, "shops.stock-chest", "shop", store, "owner", shop.ownerName());
-    }
-
-    private void link(Player player, UUID offerId, Block block, long now) {
-        services.linking().touched(player.getUniqueId(), now);
-        Optional<Shop> offer = services.book().index().byId(offerId);
-        if (offer.isEmpty()) {
-            services.linking().stop(player.getUniqueId());
-            services.messages().send(player, "shops.refused.gone");
+        ChestClickRule.Outcome outcome = bySign.isPresent() ? clicks.fixture(staff, manager)
+                : clicks.decide(staff, manager, player.isSneaking(),
+                player.getInventory().getItemInMainHand().getType().isAir());
+        if (outcome == ChestClickRule.Outcome.AS_THE_GAME_DOES) {
+            // Stocking it, or putting a frame or a sign on it: the chest is the staff's to use as any chest.
             return;
         }
-        Answer<LinkRule.Change> done = services.keeper().link(player, offer.get(), block);
-        if (!done.ok()) {
-            services.refuse(player, done.refusal());
+        // Both hands cancelled — Core checks both, and a waxed sign must not open for editing — the main hand acts.
+        event.setCancelled(true);
+        if (event.getHand() != EquipmentSlot.HAND) {
             return;
         }
-        Shop linked = services.book().index().byId(offerId).orElse(offer.get());
-        services.messages().send(player, done.value() == LinkRule.Change.LINK ? "shops.link.linked"
-                        : "shops.link.unlinked", "shop", linked.name(), "chests", Integer.toString(linked.chests().size()),
-                "most", Integer.toString(services.config().chestLimit()));
-        services.trades().recount(linked, changed -> { });
+        open(services, player, shop, outcome);
     }
 
-    /** A stock chest opened some other way — a plugin, a minecart — by somebody who may not: shut again. */
+    /** What a click on a shop — its chest, sign or frame — opens. */
+    static void open(ShopsServices services, Player player, Shop shop, ChestClickRule.Outcome outcome) {
+        switch (outcome) {
+            case BACK_ROOM -> services.screens().manage(player, shop);
+            case OWN_SHOP -> services.messages().send(player, "shops.own-shop", "shop", shop.name());
+            case COUNTER -> {
+                if (!player.hasPermission(PermissionNodes.USE)) {
+                    services.messages().send(player, "shops.refused.not-allowed");
+                    return;
+                }
+                Location chest = services.locator().location(shop.spot()).map(at -> at.add(0.5, 0.5, 0.5))
+                        .orElse(player.getLocation());
+                services.screens().front(player, shop, chest);
+            }
+            default -> {
+            }
+        }
+    }
+
+    /** A shop's chest opened some other way — a plugin, a minecart — by somebody who may not: shut again. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onOpen(InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
@@ -129,10 +107,10 @@ public final class ShopUseListener implements IShopsListener {
         });
     }
 
-    /** Somebody stocked up: count the offer again, so the bazaar says so. */
+    /** Somebody stocked up: count the shop again, so /market and what floats over it say so. */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onClose(InventoryCloseEvent event) {
         services.locator().shopOf(event.getInventory()).ifPresent(shop ->
-                services.trades().recount(shop, changed -> { }));
+                services.trades().recount(shop, services.displays()::show));
     }
 }

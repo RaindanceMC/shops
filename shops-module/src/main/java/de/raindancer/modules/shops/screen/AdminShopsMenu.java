@@ -49,7 +49,7 @@ public final class AdminShopsMenu extends PaginatedMenu<Shop> implements IShopsS
 
     @Override
     protected ItemStack emptyIcon() {
-        return Icons.of(Material.COBWEB, "<gray>No offers on this server", "<gray>Nobody has set up a shop yet.");
+        return Icons.of(Material.COBWEB, "<gray>No chest shops on this server", "<gray>Nobody has set up a shop yet.");
     }
 
     @Override

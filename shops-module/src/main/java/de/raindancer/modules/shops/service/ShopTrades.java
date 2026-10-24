@@ -24,16 +24,16 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 /**
- * A trade as a player makes it: at the shop's shopkeeper, or from the bazaar. Finds the offer's real chests and the
+ * A trade as a player makes it: at the shop's chest, or from /market. Finds the shop's real chest and the
  * real item, makes sure this thread may touch all of them, and hands them to the {@link TradeDesk} as one shelf.
  *
- * <p>A trade from the bazaar may find the chests' chunks unloaded: {@link #prepare} brings them in through Core's
+ * <p>A trade from /market may find the chests' chunks unloaded: {@link #prepare} brings them in through Core's
  * {@code ChunkHolds} first, and the trade runs once they are. A chest that is still not this thread's to touch — on
  * Folia, another region's — refuses the trade as too far.
  */
 public final class ShopTrades implements IShopsService {
 
-    /** How far from the shopkeeper a customer may stand and still trade in person. */
+    /** How far from the shop's chest a customer may stand and still trade in person. */
     public static final double REACH = 8;
 
     private final ChunkHolds chunks;
@@ -67,7 +67,7 @@ public final class ShopTrades implements IShopsService {
         return desk;
     }
 
-    /** Whether trading from the bazaar is on. */
+    /** Whether trading from /market is on. */
     public boolean remote() {
         return settings.remoteTrades();
     }
@@ -77,7 +77,8 @@ public final class ShopTrades implements IShopsService {
     }
 
     /**
-     * @param via where the shopkeeper the customer is trading at stands; null when trading from the bazaar
+     * @param via where the customer opened the shop in person; null when trading from /market. Only whether it is
+     *            there counts: in person means within reach of the shop's own chest, wherever it was opened
      */
     public TradeDesk.Outcome trade(Player customer, Shop asked, TradeSide side, int bundles, Location via) {
         Counter counter = counter(customer, asked, via);
@@ -205,7 +206,10 @@ public final class ShopTrades implements IShopsService {
             }
         } else {
             Location from = customer.getLocation();
-            if (!from.getWorld().equals(via.getWorld()) || from.distanceSquared(via) > REACH * REACH) {
+            Optional<Location> chest = locator.location(shop.get().spot()).map(at -> at.add(0.5, 0.5, 0.5));
+            boolean near = chest.isPresent() && from.getWorld().equals(chest.get().getWorld())
+                    && from.distanceSquared(chest.get()) <= REACH * REACH;
+            if (!near && !settings.remoteTrades()) {
                 return Refusal.TOO_FAR;
             }
         }

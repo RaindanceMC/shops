@@ -23,7 +23,7 @@ import java.util.Optional;
 
 /**
  * Nothing takes a shop's stock but a trade: not a hopper, a creeper, a piston, fire, a wither, or a chest placed
- * against it to make it a double chest somebody else can open.
+ * against it to make it a double chest somebody else can open. Its sign stays too.
  */
 public final class ShopGuardListener implements IShopsListener {
 
@@ -41,28 +41,33 @@ public final class ShopGuardListener implements IShopsListener {
         // Remembers nobody.
     }
 
+    /**
+     * The shop's chest, its sign, or the block holding the sign up: its manager breaking one ends the shop — the chest
+     * keeps its stock — and nobody else breaks any of them.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
-        Optional<Shop> shop = services.locator().shopAt(event.getBlock());
-        if (shop.isEmpty() || !services.locator().isShopBlock(event.getBlock())) {
+        Block block = event.getBlock();
+        Optional<Shop> shop = services.locator().shopOfSign(block).or(() -> services.locator().shopAt(block))
+                .or(() -> services.locator().signHeldBy(block));
+        if (shop.isEmpty()) {
             return;
         }
         Player player = event.getPlayer();
         boolean manager = services.book().managerOf(shop.get(), player.getUniqueId())
                 || player.hasPermission(PermissionNodes.ADMIN);
-        if (manager) {
-            // Their own stock chest: it stops being stock, and breaks as any chest does.
-            var unlinked = services.keeper().link(player, shop.get(), event.getBlock());
-            if (unlinked.ok()) {
-                services.messages().send(player, "shops.link.unlinked-broken", "shop", shop.get().name());
-                return;
-            }
+        if (!manager) {
             event.setCancelled(true);
-            services.refuse(player, unlinked.refusal());
+            services.messages().send(player, "shops.guard.not-yours", "shop", shop.get().name());
             return;
         }
-        event.setCancelled(true);
-        services.messages().send(player, "shops.guard.not-yours", "shop", shop.get().name());
+        var ended = services.keeper().remove(player, shop.get());
+        if (ended.ok()) {
+            services.messages().send(player, "shops.ended-broken", "shop", shop.get().name());
+        } else {
+            event.setCancelled(true);
+            services.refuse(player, ended.refusal());
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -115,7 +120,7 @@ public final class ShopGuardListener implements IShopsListener {
         }
     }
 
-    /** A chest set beside a stock chest joins it; only somebody who may stock the offer may do that. */
+    /** A chest set beside a shop's chest joins it; only somebody who may stock the shop may do that. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
         Block placed = event.getBlockPlaced();

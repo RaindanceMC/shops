@@ -12,10 +12,8 @@ public enum Refusal {
     BAD_NAME, PRICE_TOO_HIGH, SELLS_ABOVE_BUY, NO_PRICE, NOT_ALLOWED, WORLD_NOT_ALLOWED,
     // Reviews
     NOT_A_CUSTOMER, REVIEW_TOO_LONG, BAD_STARS, NOT_FOR_SALE,
-    // Stores, statues and travel
-    TOO_MANY_STORES, LAST_STORE, TOO_MANY_STATUES, NO_STATUES, NOT_HERE, TOO_FAR, NO_TRAVEL,
-    // Offers and their chests
-    LINKED_ELSEWHERE, TOO_MANY_CHESTS, TOO_MANY_OFFERS, NO_CHESTS, NO_REMOTE;
+    // Travel and trading from afar
+    NOT_HERE, TOO_FAR, NO_TRAVEL, NO_CHESTS, NO_REMOTE;
 
     public String key() {
         return "shops.refused." + name().toLowerCase(Locale.ROOT).replace('_', '-');

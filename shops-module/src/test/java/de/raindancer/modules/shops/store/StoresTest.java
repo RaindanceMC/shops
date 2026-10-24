@@ -4,6 +4,7 @@ import de.raindancer.core.data.sql.Database;
 import de.raindancer.core.social.economy.Money;
 import de.raindancer.core.social.economy.TradeSide;
 import de.raindancer.core.testkit.TestDatabases;
+import de.raindancer.modules.shops.model.Floating;
 import de.raindancer.modules.shops.model.Notice;
 import de.raindancer.modules.shops.model.Prices;
 import de.raindancer.modules.shops.model.Rating;
@@ -69,6 +70,57 @@ class StoresTest {
         store.save(renamed);
         assertThat(store.all()).containsExactly(renamed);
         assertThat(store.byId(saved.id())).contains(renamed);
+    }
+
+    @Test
+    @DisplayName("a chest shop comes back with its sign, its item frame and what floats over it")
+    void chestShops() {
+        ShopStore store = new ShopStore(database);
+        Spot chest = new Spot("survival", "world", 1, 64, 0);
+        UUID frame = UUID.randomUUID();
+        Shop rocks = Shop.chest(UUID.randomUUID(), STORE, ALICE, "Alice", "Rocks", chest, chest.offset(0, 0, 1),
+                frame, new Ware("STONE", "encoded-stone", "Stone"), Prices.selling(Money.of(100), 16), 7, 0)
+                .withFloating(new Floating(true, false, true));
+        store.save(rocks);
+        assertThat(store.all()).containsExactly(rocks);
+        Shop frameless = rocks.withFrame(null).withSign(chest.offset(0, 1, 0)).withFloating(Floating.NONE);
+        store.save(frameless);
+        assertThat(store.all()).containsExactly(frameless);
+    }
+
+    @Test
+    @DisplayName("the shopkeepers' offers — those without a sign — are retired once per server, kept, never loaded "
+            + "again; chest shops and other servers' offers stay")
+    void keeperOffersRetire() {
+        ShopStore store = new ShopStore(database);
+        Spot linked = new Spot("survival", "world", 7, 64, 0);
+        Shop keeperOffer = shop("Old", "survival", 1).withRentPaidTo(70_000).linked(linked);
+        Shop elsewhere = shop("Elsewhere", "creative", 2);
+        Spot chest = new Spot("survival", "world", 5, 64, 0);
+        Shop chestShop = Shop.chest(UUID.randomUUID(), STORE, ALICE, "Alice", "Rocks", chest, chest.offset(1, 0, 0),
+                null, new Ware("STONE", "", "Stone"), Prices.selling(Money.of(100), 1), 9, 0);
+        store.save(keeperOffer);
+        store.save(elsewhere);
+        store.save(chestShop);
+
+        assertThat(store.retireUnsigned("survival", 50_000)).containsExactly(keeperOffer);
+        assertThat(store.retireUnsigned("survival", 60_000)).as("once").isEmpty();
+        assertThat(store.all()).extracting(Shop::name).containsExactlyInAnyOrder("Elsewhere", "Rocks");
+
+        Shop sameChest = Shop.chest(UUID.randomUUID(), STORE, ALICE, "Alice", "Again", linked, linked.offset(1, 0, 0),
+                null, new Ware("STONE", "", "Stone"), Prices.selling(Money.of(100), 1), 10, 0);
+        assertThat(store.save(sameChest)).as("the old offer's chest is free for a chest shop").isTrue();
+        assertThat(store.all()).extracting(Shop::name).contains("Again");
+        database.read(connection -> {
+            try (var query = connection.prepareStatement("SELECT retired FROM offer WHERE id = ?")) {
+                query.setString(1, keeperOffer.id().toString());
+                try (var rows = query.executeQuery()) {
+                    assertThat(rows.next()).as("the row is kept as history").isTrue();
+                    assertThat(rows.getLong(1)).isEqualTo(50_000);
+                }
+            }
+            return null;
+        });
     }
 
     @Test
@@ -171,8 +223,8 @@ class StoresTest {
     }
 
     @Test
-    @DisplayName("shops come back as saved, staff and all; each has one shopkeeper, and a new one replaces the old")
-    void shopsAndKeepers() {
+    @DisplayName("shops come back as saved, staff and all")
+    void shopsComeBack() {
         StoreStore stores = new StoreStore(database);
         de.raindancer.modules.shops.model.Store smithy = new de.raindancer.modules.shops.model.Store(STORE, ALICE,
                 "Alice", "Smithy", "Sharp things", 5, java.util.Map.of()).withStaff(BOB, Role.MANAGER)
@@ -194,21 +246,8 @@ class StoresTest {
         assertThat(stores.all().get(0).mottoStyle()).isEqualTo(gold);
         assertThat(stores.all().get(1).nameStyle()).isEqualTo(de.raindancer.core.ui.text.NameStyle.NONE);
 
-        de.raindancer.modules.shops.model.Statue keeper = new de.raindancer.modules.shops.model.Statue(
-                UUID.randomUUID(), STORE, new Spot("survival", "world", 3, 70, -2), 90f, 7);
-        stores.place(keeper);
-        stores.place(new de.raindancer.modules.shops.model.Statue(UUID.randomUUID(), farm.id(),
-                new Spot("survival", "world", 9, 70, 9), 0f, 8));
-        de.raindancer.modules.shops.model.Statue moved = new de.raindancer.modules.shops.model.Statue(
-                UUID.randomUUID(), STORE, new Spot("survival", "world", 5, 70, -2), 0f, 9);
-        stores.place(moved);
-        assertThat(stores.statues()).hasSize(2);
-        assertThat(stores.statues().stream().filter(each -> each.store().equals(STORE)).toList())
-                .containsExactly(moved);
-
         assertThat(stores.delete(farm.id())).isTrue();
         assertThat(stores.all()).extracting(de.raindancer.modules.shops.model.Store::name).containsExactly("Smithy");
-        assertThat(stores.statues()).as("a shop's keeper goes with it").containsExactly(moved);
     }
 
     @Test

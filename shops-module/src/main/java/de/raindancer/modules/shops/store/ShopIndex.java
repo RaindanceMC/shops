@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * This server's offers in memory — asked on every click at every container, so it must answer without a database.
  *
- * <p>Two maps kept in step under one lock: by id, and by each linked chest. A lookup by chest that disagreed with the
+ * <p>Maps kept in step under one lock: by id, by each chest and by each sign. A lookup by chest that disagreed with the
  * lookup by id would be a chest guarded as stock of somebody else's offer.
  */
 public final class ShopIndex {
@@ -23,15 +23,16 @@ public final class ShopIndex {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<UUID, Shop> byId = new HashMap<>();
     private final Map<String, UUID> bySpot = new HashMap<>();
+    private final Map<String, UUID> bySign = new HashMap<>();
 
     public void put(Shop shop) {
         lock.writeLock().lock();
         try {
             Shop old = byId.put(shop.id(), shop);
             if (old != null) {
-                old.chests().forEach(chest -> bySpot.remove(chest.key(), old.id()));
+                forget(old);
             }
-            shop.chests().forEach(chest -> bySpot.put(chest.key(), shop.id()));
+            remember(shop);
         } finally {
             lock.writeLock().unlock();
         }
@@ -42,7 +43,7 @@ public final class ShopIndex {
         try {
             Shop old = byId.remove(id);
             if (old != null) {
-                old.chests().forEach(chest -> bySpot.remove(chest.key(), id));
+                forget(old);
             }
             return Optional.ofNullable(old);
         } finally {
@@ -55,9 +56,10 @@ public final class ShopIndex {
         try {
             byId.clear();
             bySpot.clear();
+            bySign.clear();
             for (Shop shop : shops) {
                 byId.put(shop.id(), shop);
-                shop.chests().forEach(chest -> bySpot.put(chest.key(), shop.id()));
+                remember(shop);
             }
         } finally {
             lock.writeLock().unlock();
@@ -69,6 +71,17 @@ public final class ShopIndex {
         lock.readLock().lock();
         try {
             UUID id = bySpot.get(spot.key());
+            return id == null ? Optional.empty() : Optional.ofNullable(byId.get(id));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    /** The chest shop this sign set up. */
+    public Optional<Shop> bySign(Spot sign) {
+        lock.readLock().lock();
+        try {
+            UUID id = bySign.get(sign.key());
             return id == null ? Optional.empty() : Optional.ofNullable(byId.get(id));
         } finally {
             lock.readLock().unlock();
@@ -129,6 +142,20 @@ public final class ShopIndex {
             return byId.size();
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    private void remember(Shop shop) {
+        shop.chests().forEach(chest -> bySpot.put(chest.key(), shop.id()));
+        if (shop.sign() != null) {
+            bySign.put(shop.sign().key(), shop.id());
+        }
+    }
+
+    private void forget(Shop old) {
+        old.chests().forEach(chest -> bySpot.remove(chest.key(), old.id()));
+        if (old.sign() != null) {
+            bySign.remove(old.sign().key(), old.id());
         }
     }
 }

@@ -14,7 +14,9 @@ import de.raindancer.modules.shops.service.ShopLocator;
 import de.raindancer.modules.shops.service.ShopTrades;
 import de.raindancer.modules.shops.service.ShopTravel;
 import de.raindancer.modules.shops.service.Wares;
-import de.raindancer.modules.shops.visual.Shopkeepers;
+import de.raindancer.modules.shops.visual.RetiredShopkeepers;
+import de.raindancer.modules.shops.visual.ShopDisplays;
+import de.raindancer.modules.shops.visual.ShopFixtures;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -38,14 +40,15 @@ public record ShopsServices(
         SettingsStore<ShopsSettings> store,
         ShopBook book,
         ShopLocator locator,
-        de.raindancer.modules.shops.service.Linking linking,
         Wares wares,
         ShopKeeper keeper,
         ShopTrades trades,
         NoticeService notices,
         ReviewService reviews,
         ShopTravel travel,
-        Shopkeepers keepers,
+        ShopDisplays displays,
+        ShopFixtures fixtures,
+        RetiredShopkeepers retired,
         IShopsScreensOpener screens) {
 
     public ShopsSettings config() {

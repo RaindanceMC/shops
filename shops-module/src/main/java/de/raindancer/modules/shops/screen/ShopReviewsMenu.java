@@ -84,7 +84,7 @@ public final class ShopReviewsMenu extends PaginatedMenu<Review> implements ISho
         boolean own = services.book().staffOf(shop, viewer.getUniqueId());
         toolbar(4, !own, Icons.of(Material.WRITABLE_BOOK, "<white>Write a review",
                         "<gray>For customers who traded here lately."),
-                "Not about your own offer", click -> new ReviewMenu(services, viewer, this, shop).open());
+                "Not about your own shop", click -> new ReviewMenu(services, viewer, this, shop).open());
     }
 
     @Override

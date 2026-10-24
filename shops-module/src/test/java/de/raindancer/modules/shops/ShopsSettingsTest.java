@@ -48,15 +48,13 @@ class ShopsSettingsTest {
     }
 
     @Test
-    @DisplayName("the defaults: free to open, no rent, no cut, three shops of 27 offers, 12 chests within 24 blocks")
+    @DisplayName("the defaults: free to open, no rent, no cut, 27 chest shops each, every line floating")
     void spelledOut() {
         assertThat(defaults.openingPrice()).isEqualTo("0");
         assertThat(defaults.rentPerWeek()).isEqualTo("0");
         assertThat(defaults.cutPercent()).isZero();
-        assertThat(defaults.shopLimit()).isEqualTo(3);
-        assertThat(defaults.offerLimit()).isEqualTo(27);
-        assertThat(defaults.chestLimit()).isEqualTo(12);
-        assertThat(defaults.reach()).isEqualTo(24);
+        assertThat(defaults.shopLimit()).isEqualTo(27);
+        assertThat(defaults.floatingLines()).isTrue();
         assertThat(defaults.containers()).contains("CHEST", "BARREL").noneMatch(name -> name.contains("SHULKER"));
         assertThat(defaults.closedWorlds()).isEmpty();
         assertThat(defaults.styledNames()).isTrue();
@@ -70,8 +68,8 @@ class ShopsSettingsTest {
     void clamped() {
         assertThat(defaults.withServerCutPercent(250).cutPercent()).isEqualTo(100);
         assertThat(defaults.withServerCutPercent(-3).cutPercent()).isZero();
-        assertThat(defaults.withMostShops(-1).shopLimit()).isZero();
-        assertThat(defaults.withLinkReach(500).reach()).isEqualTo(64);
-        assertThat(defaults.withLinkReach(0).reach()).isEqualTo(4);
+        assertThat(defaults.withMostChestShops(-1).shopLimit()).isZero();
+        assertThat(defaults.withMostChestShops(9_000).shopLimit()).isEqualTo(500);
+        assertThat(defaults.withFloatingLines(false).floatingLines()).isFalse();
     }
 }

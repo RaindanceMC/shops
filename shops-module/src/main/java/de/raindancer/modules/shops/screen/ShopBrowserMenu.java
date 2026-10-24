@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The bazaar: every offer in every shop, searched by what it trades, cheapest first. Click to trade from here (when
+ * The market: every chest shop, searched by what it trades, cheapest first. Click to trade from here (when
  * remote trades are on and the shop is on this server), shift click to go to its shopkeeper, right click for the
  * whole shop.
  */
@@ -47,13 +47,13 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Bazaar" + (query.isEmpty() ? ""
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Market" + (query.isEmpty() ? ""
                 : " · " + Text.literal(query)));
     }
 
     @Override
     public String breadcrumb() {
-        return "Bazaar";
+        return "Market";
     }
 
     @Override
@@ -65,7 +65,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     @Override
     protected ItemStack emptyIcon() {
         return Icons.of(Material.COBWEB, query.isEmpty() ? "<gray>No shops yet" : "<gray>Nothing found",
-                query.isEmpty() ? "<gray>Be the first: /bazaar create <name>" : "<gray>Nobody " + (side == TradeSide.BUY
+                query.isEmpty() ? "<gray>Be the first: /market help" : "<gray>Nobody " + (side == TradeSide.BUY
                         ? "sells" : "buys") + " " + Text.literal(query) + " right now.",
                 "<yellow>Click to search for something else.");
     }
@@ -85,7 +85,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
         }
         if (services.travel().enabled()) {
             String fee = Fees.format(Fees.amount(services.config().travelPrice()));
-            lore.add("<yellow>" + (remote ? "Shift click" : "Click") + " to go to the shopkeeper"
+            lore.add("<yellow>" + (remote ? "Shift click" : "Click") + " to go to the shop"
                     + (Fees.amount(services.config().travelPrice()).isPositive() ? " <gray>(" + fee + ")" : ""));
         }
         lore.add("<yellow>Right click for the whole shop");
@@ -114,7 +114,7 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     protected void decorate() {
         super.decorate();
         toolbar(1, Icons.of(side == TradeSide.BUY ? Material.EMERALD : Material.GOLD_NUGGET,
-                side == TradeSide.BUY ? "<white>Offers that sell" : "<white>Offers that buy",
+                side == TradeSide.BUY ? "<white>Shops that sell" : "<white>Shops that buy",
                 "<yellow>Click to see the " + (side == TradeSide.BUY ? "ones that buy" : "ones that sell")), click -> {
             side = side == TradeSide.BUY ? TradeSide.SELL : TradeSide.BUY;
             refresh();
@@ -135,12 +135,12 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
             }
         });
         toolbar(5, Icons.of(withoutStock ? Material.ENDER_EYE : Material.ENDER_PEARL,
-                withoutStock ? "<white>Showing sold out offers too" : "<white>Showing offers that can trade",
+                withoutStock ? "<white>Showing sold out shops too" : "<white>Showing shops that can trade",
                 "<yellow>Click to switch"), click -> {
             withoutStock = !withoutStock;
             refresh();
         });
-        toolbar(7, Icons.of(Material.CHEST, "<white>Your shops", "<gray>Your shopkeepers and their offers."),
+        toolbar(7, Icons.of(Material.CHEST, "<white>Your shops", "<gray>Your chest shops."),
                 click -> services.screens().mine(viewer));
     }
 
@@ -153,6 +153,6 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
 
     @Override
     public String describe() {
-        return "every offer, searched";
+        return "every shop, searched";
     }
 }

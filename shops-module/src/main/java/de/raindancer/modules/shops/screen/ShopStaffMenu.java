@@ -88,7 +88,7 @@ public final class ShopStaffMenu extends PaginatedMenu<Map.Entry<UUID, Role>> im
     protected void decorate() {
         super.decorate();
         toolbar(4, Icons.of(Material.EMERALD, "<white>Add somebody",
-                "<gray>They start as a clerk: they fill the stock chests."), click -> add());
+                "<gray>They start as a clerk: they fill the chests."), click -> add());
     }
 
     private void add() {

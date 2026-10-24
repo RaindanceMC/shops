@@ -36,6 +36,28 @@ class ShopIndexTest {
     }
 
     @Test
+    @DisplayName("a chest shop is found by its chest and by its sign; moving or removing the sign forgets the old spot")
+    void signs() {
+        ShopIndex index = new ShopIndex();
+        Spot sign = chest(1).offset(0, 0, 1);
+        Shop shop = Shop.chest(UUID.randomUUID(), ALICE, ALICE, "Alice", "Rocks", chest(1), sign, null,
+                new Ware("STONE", "", null), Prices.selling(Money.of(100), 1), 0, 0);
+        index.put(shop);
+        assertThat(index.at(chest(1))).contains(shop);
+        assertThat(index.bySign(sign)).contains(shop);
+        assertThat(index.at(sign)).as("the sign is no stock").isEmpty();
+
+        Spot moved = chest(1).offset(0, 1, 0);
+        Shop resigned = shop.withSign(moved);
+        index.put(resigned);
+        assertThat(index.bySign(sign)).isEmpty();
+        assertThat(index.bySign(moved)).contains(resigned);
+
+        index.remove(shop.id());
+        assertThat(index.bySign(moved)).isEmpty();
+    }
+
+    @Test
     @DisplayName("found by id, by any of its chests and by owner; replacing keeps one entry; removing forgets the chests")
     void lookups() {
         ShopIndex index = new ShopIndex();

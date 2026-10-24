@@ -35,7 +35,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
     private final Shop asked;
     private final Location via;
 
-    /** @param via where the shopkeeper this was opened at stands, or null from the bazaar */
+    /** @param via where it was opened in person — at its chest, sign or frame — or null from /market */
     public ShopFrontMenu(ShopsServices services, Player viewer, Menu parent, Shop shop, Location via) {
         super(viewer, services.brand(), parent);
         this.services = services;
@@ -64,7 +64,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
         services.book().store(shop.store()).ifPresent(store ->
                 about.add("<gray>At " + Lines.named(store.name(), store.nameStyle(), "<white>") + " <gray>by " + Text.literal(shop.ownerName())));
         if (via == null) {
-            about.add("<gray>From the bazaar: it comes straight to you.");
+            about.add("<gray>From /market: it comes straight to you.");
         }
         about.add(Lines.status(shop));
         about.add(Lines.rating(services.book().rating(shop.id())));
@@ -95,13 +95,13 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
                     click -> pick(shop, TradeSide.SELL, most));
         }
         band(MenuLayout.LAND, 3, Icons.of(Material.WRITABLE_BOOK, "<white>Reviews",
-                "<gray>What customers say about this offer.",
+                "<gray>What customers say about this shop.",
                 "<gray>Click to read them; write one from there."), click ->
                 services.reviews().read(viewer, shop, reviews ->
                         new ShopReviewsMenu(services, viewer, this, shop, reviews).open()));
         services.book().store(shop.store()).ifPresent(store ->
                 band(MenuLayout.LAND, 5, Icons.head(shop.owner(), Lines.named(store.name(), store.nameStyle(), "<white>"),
-                                "<gray>Everything else this shop offers."),
+                                "<gray>Everything else its owner sells."),
                         click -> new StoreMenu(services, viewer, this, store, via).open()));
         if (services.book().managerOf(shop, viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
             toolbar(4, Icons.of(Material.COMPARATOR, "<white>The back room",

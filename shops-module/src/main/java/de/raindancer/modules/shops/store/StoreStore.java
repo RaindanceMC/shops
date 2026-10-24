@@ -3,8 +3,6 @@ package de.raindancer.modules.shops.store;
 import de.raindancer.core.data.sql.Database;
 import de.raindancer.core.ui.text.NameStyle;
 import de.raindancer.modules.shops.model.Role;
-import de.raindancer.modules.shops.model.Spot;
-import de.raindancer.modules.shops.model.Statue;
 import de.raindancer.modules.shops.model.Store;
 
 import java.sql.Connection;
@@ -19,8 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Players' shops, their staff and their shopkeepers, network-wide. One shopkeeper per shop: placing one replaces the
- * row of the last. Blocking; called through {@link ShopWriter}.
+ * Players' shops and their staff, network-wide. Blocking; called through {@link ShopWriter}.
  */
 public final class StoreStore {
 
@@ -65,10 +62,10 @@ public final class StoreStore {
         });
     }
 
-    /** The shop, its staff and its shopkeeper's row; the shopkeeper itself is taken out of the world by the caller. */
+    /** The shop and its staff. */
     public boolean delete(UUID id) {
         return database.write(connection -> {
-            for (String sql : List.of("DELETE FROM shopkeeper WHERE shop = ?", "DELETE FROM player_shop_staff WHERE shop = ?",
+            for (String sql : List.of("DELETE FROM player_shop_staff WHERE shop = ?",
                     "DELETE FROM player_shop WHERE id = ?")) {
                 try (PreparedStatement row = connection.prepareStatement(sql)) {
                     row.setString(1, id.toString());
@@ -108,42 +105,5 @@ public final class StoreStore {
             }
         }
         return staff;
-    }
-
-    public boolean place(Statue statue) {
-        return database.write(connection -> {
-            try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO shopkeeper (shop, entity, server, world, x, y, z, yaw, placed) VALUES (?,?,?,?,?,?,?,?,?) "
-                            + "ON CONFLICT(shop) DO UPDATE SET entity = excluded.entity, server = excluded.server, "
-                            + "world = excluded.world, x = excluded.x, y = excluded.y, z = excluded.z, "
-                            + "yaw = excluded.yaw, placed = excluded.placed")) {
-                row.setString(1, statue.store().toString());
-                row.setString(2, statue.entity().toString());
-                row.setString(3, statue.spot().server());
-                row.setString(4, statue.spot().world());
-                row.setInt(5, statue.spot().x());
-                row.setInt(6, statue.spot().y());
-                row.setInt(7, statue.spot().z());
-                row.setDouble(8, statue.yaw());
-                row.setLong(9, statue.placedAt());
-                row.executeUpdate();
-            }
-        });
-    }
-
-    public List<Statue> statues() {
-        return database.read(connection -> {
-            List<Statue> statues = new ArrayList<>();
-            try (PreparedStatement query = connection.prepareStatement(
-                    "SELECT entity, shop, server, world, x, y, z, yaw, placed FROM shopkeeper ORDER BY placed, shop");
-                 ResultSet rows = query.executeQuery()) {
-                while (rows.next()) {
-                    statues.add(new Statue(UUID.fromString(rows.getString(1)), UUID.fromString(rows.getString(2)),
-                            new Spot(rows.getString(3), rows.getString(4), rows.getInt(5), rows.getInt(6),
-                                    rows.getInt(7)), (float) rows.getDouble(8), rows.getLong(9)));
-                }
-            }
-            return statues;
-        }).orElse(List.of());
     }
 }

@@ -4,7 +4,6 @@ import de.raindancer.modules.shops.ShopsSettings;
 import de.raindancer.modules.shops.model.Listing;
 import de.raindancer.modules.shops.model.Rating;
 import de.raindancer.modules.shops.model.Shop;
-import de.raindancer.modules.shops.model.Statue;
 import de.raindancer.modules.shops.model.Store;
 import de.raindancer.modules.shops.store.NoticeStore;
 import de.raindancer.modules.shops.store.ReviewStore;
@@ -27,7 +26,7 @@ import java.util.function.Supplier;
  * What this module knows, in memory, and the one way anything is written back.
  *
  * <p>This server's offers live in the {@link ShopIndex}, because every click at every container asks about them. Shops
- * ({@link Store}) and their shopkeepers are few and network-wide. Other servers' offers are a copy refreshed now and
+ * ({@link Store}) are few and network-wide. Other servers' offers are a copy refreshed now and
  * then, for the browser only: nothing here ever writes one of them back, so a stale copy cannot overwrite a newer row.
  */
 public final class ShopBook implements IShopsService {
@@ -42,7 +41,6 @@ public final class ShopBook implements IShopsService {
     private final Supplier<String> server;
 
     private final Map<UUID, Store> storesById = new ConcurrentHashMap<>();
-    private final Map<UUID, Statue> statues = new ConcurrentHashMap<>();
     private final Map<UUID, ShopStore.Known> known = new ConcurrentHashMap<>();
     private final Map<UUID, Rating> ratings = new ConcurrentHashMap<>();
     private volatile List<Shop> elsewhere = List.of();
@@ -64,20 +62,24 @@ public final class ShopBook implements IShopsService {
         // Nothing read from the settings: what is known does not depend on them.
     }
 
-    /** Everything from the database. Blocking; at start, off the server thread. */
-    public void load() {
+    /**
+     * Everything from the database. Blocking; at start, off the server thread.
+     *
+     * @return this server's offers from before 0.4.0, retired now and never loaded — for their owners to be told
+     */
+    public List<Shop> load(long now) {
         String here = server.get();
+        List<Shop> retired = shops.retireUnsigned(here, now);
         List<Shop> all = shops.all();
         index.replaceAll(all.stream().filter(shop -> shop.spot().isOn(here)).toList());
         elsewhere = all.stream().filter(shop -> !shop.spot().isOn(here)).toList();
         storesById.clear();
         stores.all().forEach(store -> storesById.put(store.id(), store));
-        statues.clear();
-        stores.statues().forEach(statue -> statues.put(statue.entity(), statue));
         known.clear();
         known.putAll(shops.known());
         ratings.clear();
         ratings.putAll(reviews.ratings());
+        return retired;
     }
 
     /** Other servers' shops, stores and every rating, again. Blocking; on a timer, off the server thread. */
@@ -167,7 +169,7 @@ public final class ShopBook implements IShopsService {
         return in;
     }
 
-    // ------------------------------------------------------------------ stores and statues
+    // ------------------------------------------------------------------ stores
 
     public Optional<Store> store(UUID id) {
         return Optional.ofNullable(storesById.get(id));
@@ -189,14 +191,7 @@ public final class ShopBook implements IShopsService {
 
     public void removeStore(UUID id) {
         storesById.remove(id);
-        statues.values().removeIf(statue -> statue.store().equals(id));
         writer.write(() -> stores.delete(id));
-    }
-
-    /** The shop's shopkeeper, wherever it stands. */
-    public Optional<Statue> keeperOf(UUID store) {
-        return statues.values().stream().filter(statue -> statue.store().equals(store))
-                .max(Comparator.comparingLong(Statue::placedAt));
     }
 
     /** Whether somebody works at this offer's shop — the owner too — and so stocks it rather than trading at it. */
@@ -204,25 +199,9 @@ public final class ShopBook implements IShopsService {
         return store(shop.store()).map(found -> found.mayStock(who)).orElse(shop.isOwner(who));
     }
 
-    /** Whether somebody may price this offer and link its chests: its shop's owner or a manager there. */
+    /** Whether somebody may price this shop and end it: its shop's owner or a manager there. */
     public boolean managerOf(Shop shop, UUID who) {
         return store(shop.store()).map(found -> found.mayManage(who)).orElse(shop.isOwner(who));
-    }
-
-    public Optional<Statue> statue(UUID entity) {
-        return Optional.ofNullable(statues.get(entity));
-    }
-
-    /** A shop's shopkeeper placed — the last one it had, if any, is no longer it. */
-    public void placed(Statue statue) {
-        statues.values().removeIf(each -> each.store().equals(statue.store()));
-        statues.put(statue.entity(), statue);
-        writer.write(() -> stores.place(statue));
-    }
-
-    /** Forgets a shopkeeper entity that is not its shop's any more; the shop's row is replaced, never deleted here. */
-    public void unplaced(UUID entity) {
-        statues.remove(entity);
     }
 
     // ------------------------------------------------------------------ ratings and the rest

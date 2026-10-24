@@ -6,7 +6,8 @@ import de.raindancer.core.data.sql.Schema;
  * The shape of {@code shops.db} — the network's one, every server reading all of it and writing only the rows of its
  * own shops. Steps are only ever appended to; see {@link Schema}. Since 0.2.0 the shops are {@code player_shop} with
  * one {@code shopkeeper}, their offers {@code offer} with {@code offer_chest}; {@code shop}, {@code store} and
- * {@code statue} are the 0.1 shops, kept as history.
+ * {@code statue} are the 0.1 shops, kept as history. Since 0.4.0 an {@code offer} is a chest shop with its sign;
+ * {@code shopkeeper} is history too.
  */
 public final class ShopsDatabase {
 
@@ -74,7 +75,13 @@ public final class ShopsDatabase {
             // 0.3.0: names wear Core's NameStyle, encoded.
             "ALTER TABLE player_shop ADD COLUMN name_style TEXT NOT NULL DEFAULT ''",
             "ALTER TABLE player_shop ADD COLUMN motto_style TEXT NOT NULL DEFAULT ''",
-            "ALTER TABLE offer ADD COLUMN name_style TEXT NOT NULL DEFAULT ''");
+            "ALTER TABLE offer ADD COLUMN name_style TEXT NOT NULL DEFAULT ''",
+            // 0.4.0: chest shops — a chest, its [market] sign, its item frame, what floats over it. The shopkeepers'
+            // offers (no sign) are retired per server: kept, never loaded again.
+            "ALTER TABLE offer ADD COLUMN sign TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE offer ADD COLUMN frame TEXT NOT NULL DEFAULT ''",
+            "ALTER TABLE offer ADD COLUMN floating INTEGER NOT NULL DEFAULT 7",
+            "ALTER TABLE offer ADD COLUMN retired BIGINT NOT NULL DEFAULT 0");
 
     private ShopsDatabase() {
     }

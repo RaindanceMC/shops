@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.screen;
 import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.social.economy.Money;
 import de.raindancer.core.ui.choose.AmountChooser;
+import de.raindancer.core.ui.choose.ToggleChooser;
 import de.raindancer.core.ui.choose.StyleEditor;
 import de.raindancer.core.ui.menu.Icons;
 import de.raindancer.core.ui.menu.Menu;
@@ -12,6 +13,7 @@ import de.raindancer.core.ui.prompt.Parsers;
 import de.raindancer.core.ui.text.Text;
 import de.raindancer.modules.shops.ShopsServices;
 import de.raindancer.modules.shops.model.Answer;
+import de.raindancer.modules.shops.model.Floating;
 import de.raindancer.modules.shops.model.Prices;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Status;
@@ -27,8 +29,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * An offer's back room: its prices, the chests it sells from, its log. What the shop's owner and managers see; a
- * clerk only reaches the chests themselves.
+ * A chest shop's back room: its prices, what floats over it, its log. What the shop's owner and managers see; a clerk
+ * only reaches the chest itself.
  */
 public final class ShopManageMenu extends Menu implements IShopsScreen {
 
@@ -50,12 +52,12 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
 
     @Override
     protected Component title() {
-        return MiniMessage.miniMessage().deserialize("<dark_gray>Offer · " + Lines.named(shop().name(), shop().nameStyle(), ""));
+        return MiniMessage.miniMessage().deserialize("<dark_gray>Chest shop · " + Lines.named(shop().name(), shop().nameStyle(), ""));
     }
 
     @Override
     public String breadcrumb() {
-        return "Offer";
+        return "Chest shop";
     }
 
     @Override
@@ -87,7 +89,7 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
                 "<gray>Trades in " + Text.literal(shop.ware().label()), Lines.status(shop),
                 "<gray>" + services.book().knownOf(shop.id()).stock() + " in stock, "
                         + services.book().knownOf(shop.id()).sales() + " trades so far",
-                "<gray>" + shop.chests().size() + " stock chest" + (shop.chests().size() == 1 ? "" : "s"))));
+                "<gray>At " + Text.literal(shop.spot().describe()))));
         boolean open = shop.status() == Status.OPEN;
         band(MenuLayout.WHO, 5, manager && (shop.status() != Status.CLOSED || admin),
                 Icons.of(open ? Material.LIME_DYE : Material.GRAY_DYE, open ? "<green>Open" : "<yellow>Paused",
@@ -100,23 +102,28 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
                     if (click.isRightClick()) {
                         styleName();
                     } else {
-                        AnvilInput.open(viewer, "Name this offer", shop().name(),
+                        AnvilInput.open(viewer, "Name this shop", shop().name(),
                                 Parsers.text(services.config().nameLimit()),
                                 name -> show(services.keeper().rename(viewer, shop(), name)), this::open);
                     }
                 });
 
-        band(MenuLayout.RULES, 1, manager, Icons.of(Material.CHEST, "<white>Link stock chests",
-                        "<gray>" + shop.chests().size() + " of " + services.config().chestLimit() + " linked.",
-                        "<gray>Click, then right click chests near your",
-                        "<gray>shopkeeper to link or unlink them.",
-                        "<gray>Type <white>/bazaar done</white> when finished."), notManager,
-                click -> {
-                    services.linking().start(viewer.getUniqueId(), shop().id(), System.currentTimeMillis());
-                    viewer.closeInventory();
-                    services.messages().send(viewer, "shops.link.started", "shop", shop().name(),
-                            "reach", Integer.toString(services.config().reach()));
-                });
+        Floating floating = shop.floating();
+        band(MenuLayout.RULES, 1, manager, Icons.of(Material.GLOW_ITEM_FRAME, "<white>What floats over the chest",
+                        (floating.item() ? "<green>" : "<dark_gray>") + "Item",
+                        (floating.price() ? "<green>" : "<dark_gray>") + "Price",
+                        (floating.name() ? "<green>" : "<dark_gray>") + "Name",
+                        services.config().floatingLines() ? "<yellow>Click to switch lines on or off."
+                                : "<red>Nothing floats on this server."), notManager,
+                click -> new ToggleChooser(viewer, services.brand(), this, "What floats over the chest",
+                        List.of("ITEM", "PRICE", "NAME"), () -> shown(shop().floating()), false, line -> {
+                    Floating.Line which = Floating.Line.valueOf(line);
+                    var done = services.keeper().manage(viewer, shop(),
+                            edited -> edited.withFloating(edited.floating().toggled(which)));
+                    if (!done.ok()) {
+                        services.refuse(viewer, done.refusal());
+                    }
+                }).open());
         band(MenuLayout.RULES, 2, Icons.of(Material.BOOK, "<white>The log", "<gray>Every trade, newest first."),
                 click -> services.book().writer().write(() -> {
                     var trades = services.book().trades().recent(shop.id(), 180);
@@ -127,15 +134,15 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
                         Lines.rating(services.book().rating(shop.id()))),
                 click -> services.reviews().read(viewer, shop, reviews ->
                         new ShopReviewsMenu(services, viewer, this, shop, reviews).open()));
-        band(MenuLayout.RULES, 5, !shop.chests().isEmpty(), Icons.of(Material.COMPASS, "<white>Where its chests are",
-                        "<gray>Click to have them listed."), "No chests linked yet",
-                click -> shop().chests().forEach(chest -> services.messages().send(viewer, "shops.link.where",
-                        "where", chest.describe())));
+        band(MenuLayout.RULES, 5, Icons.of(Material.COMPASS, "<white>Where it is",
+                        "<gray>" + Text.literal(shop.spot().describe()),
+                        "<gray>on " + Text.literal(shop.spot().server())),
+                click -> services.messages().send(viewer, "shops.where", "where", shop().spot().describe()));
         ItemStack held = viewer.getInventory().getItemInMainHand();
         band(MenuLayout.RULES, 6, manager && !held.getType().isAir(), Icons.of(Material.HOPPER,
                         "<white>Trade something else",
-                        "<gray>The item in your hand becomes what this offer trades.",
-                        "<gray>The old stock stays in the chests."),
+                        "<gray>The item in your hand becomes what this shop",
+                        "<gray>trades; the frame shows it. Old stock stays."),
                 held.getType().isAir() ? "Hold the new item first" : notManager,
                 click -> show(services.keeper().reware(viewer, shop(), viewer.getInventory().getItemInMainHand())));
 
@@ -154,22 +161,22 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
         Money weekly = services.keeper().weeklyRent();
         band(MenuLayout.LAND, 4, shop.paysRent(), Icons.of(Material.CLOCK, "<white>Rent",
                         shop.paysRent() ? "<gray>Paid until <white>" + DAY.format(Instant.ofEpochMilli(shop.rentPaidTo()))
-                                : "<gray>This offer pays no rent.",
+                                : "<gray>This shop pays no rent.",
                         "<gray>" + Fees.format(weekly) + " a week, taken from the owner when due.",
-                        "<yellow>Click to pay a week ahead."), "This offer pays no rent",
+                        "<yellow>Click to pay a week ahead."), "This shop pays no rent",
                 click -> show(services.keeper().payRent(viewer, shop(), 1)));
         band(MenuLayout.LAND, 6, admin, Icons.of(Material.IRON_BARS, shop.status() == Status.CLOSED
                                 ? "<white>Reopen (staff)" : "<white>Close (staff)",
-                        "<gray>An offer staff closed only staff open again.", "<gray>The owner is told."),
+                        "<gray>A shop staff closed only staff open again.", "<gray>The owner is told."),
                 "Staff only", click -> show(services.keeper().staffClose(viewer, shop(),
                         shop().status() != Status.CLOSED)));
 
         if (manager) {
-            danger(Icons.of(Material.TNT, "<red>End this offer",
-                    "<gray>Its chests and their stock stay.", "<gray>Asks first."), click ->
+            danger(Icons.of(Material.TNT, "<red>End this shop",
+                    "<gray>The chest and its stock stay.", "<gray>Asks first."), click ->
                     new ConfirmScreen(services, viewer, this, "<red>End " + Text.literal(shop.name()) + "?",
-                            List.of("<gray>The shopkeeper stops selling it.",
-                                    "<gray>The chests keep everything in them.",
+                            List.of("<gray>Nobody can trade here any more.",
+                                    "<gray>The chest keeps everything in it.",
                                     "<gray>Its log and reviews are kept for your statement."), () -> {
                         Answer<Shop> removed = services.keeper().remove(viewer, shop());
                         if (removed.ok()) {
@@ -180,6 +187,16 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
                         }
                     }).open());
         }
+    }
+
+    private static List<String> shown(Floating floating) {
+        List<String> on = new java.util.ArrayList<>(3);
+        for (Floating.Line line : Floating.Line.values()) {
+            if (floating.shows(line)) {
+                on.add(line.name());
+            }
+        }
+        return on;
     }
 
     private void askPrice(boolean selling) {
@@ -195,7 +212,7 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
 
     private void styleName() {
         StyleEditor.of(viewer, services.brand(), this)
-                .heading("Paint the offer's name")
+                .heading("Paint the shop's name")
                 .sample(() -> shop().name())
                 .current(() -> shop().nameStyle())
                 .grants(Lines.grants(services))
@@ -220,6 +237,6 @@ public final class ShopManageMenu extends Menu implements IShopsScreen {
 
     @Override
     public String describe() {
-        return "an offer's back room, for its shop's owner and managers";
+        return "a chest shop's back room, for its owner and managers";
     }
 }

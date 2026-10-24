@@ -19,10 +19,14 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * Which offer a block or an inventory is stock of, and the stock chests' inventories. A double chest is one chest
- * whichever half is linked or clicked.
+ * Which chest shop a block or an inventory belongs to, and the chests' inventories. A double chest is one chest
+ * whichever half is the shop's or clicked.
  */
 public final class ShopLocator {
+
+    private static final List<org.bukkit.block.BlockFace> HOLDING = List.of(org.bukkit.block.BlockFace.NORTH,
+            org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST,
+            org.bukkit.block.BlockFace.UP);
 
     private final ShopIndex index;
     private final Supplier<String> server;
@@ -44,7 +48,7 @@ public final class ShopLocator {
         return world == null ? Optional.empty() : Optional.of(new Location(world, spot.x(), spot.y(), spot.z()));
     }
 
-    /** The offer this block is a stock chest of, or half of one. */
+    /** The chest shop this block is the chest of, or half of one. */
     public Optional<Shop> shopAt(Block block) {
         for (Block part : parts(block)) {
             Optional<Shop> found = index.at(spotOf(part));
@@ -67,9 +71,37 @@ public final class ShopLocator {
         return Optional.empty();
     }
 
-    /** Whether this block is a stock chest or half of one — what an explosion or a piston must leave alone. */
+    /** The chest shop this block is the sign of. */
+    public Optional<Shop> shopOfSign(Block block) {
+        return index.bySign(spotOf(block));
+    }
+
+    /** The chest shop whose sign hangs on or stands on this block — breaking the block would drop the sign. */
+    public Optional<Shop> signHeldBy(Block block) {
+        for (org.bukkit.block.BlockFace face : HOLDING) {
+            Block next = block.getRelative(face);
+            Optional<Shop> shop = shopOfSign(next);
+            if (shop.isEmpty()) {
+                continue;
+            }
+            org.bukkit.block.data.BlockData data = next.getBlockData();
+            boolean held = data instanceof org.bukkit.block.data.type.WallSign wall
+                    ? next.getRelative(wall.getFacing().getOppositeFace()).equals(block)
+                    : face == org.bukkit.block.BlockFace.UP;
+            if (held) {
+                return shop;
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Whether this block is a shop's chest, half of one, a shop's sign or what holds the sign up — what an explosion
+     * or a piston must leave alone.
+     */
     public boolean isShopBlock(Block block) {
-        return parts(block).stream().anyMatch(part -> index.at(spotOf(part)).isPresent());
+        return shopOfSign(block).isPresent() || parts(block).stream().anyMatch(part -> index.at(spotOf(part)).isPresent())
+                || signHeldBy(block).isPresent();
     }
 
     /** The shop an inventory belongs to — a hopper's source or destination. */
@@ -103,7 +135,7 @@ public final class ShopLocator {
     }
 
     /** The block itself, and the other half when it is half of a double chest. */
-    private List<Block> parts(Block block) {
+    public List<Block> parts(Block block) {
         List<Block> parts = new ArrayList<>(2);
         parts.add(block);
         if (block.getBlockData() instanceof org.bukkit.block.data.type.Chest chest

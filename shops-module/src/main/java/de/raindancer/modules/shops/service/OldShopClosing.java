@@ -12,8 +12,9 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
- * Closes this server's shops from before 0.2.0, once: each owner is told, with the rent they had paid ahead given back;
- * the chests stay chests with everything in them. The rows are marked closed and kept — nothing is deleted.
+ * Closes this server's shops from before the reworks, once: the 0.1 chest shops and the 0.2–0.3 shopkeepers' offers.
+ * Each owner is told, with the rent they had paid ahead given back; the chests stay chests with everything in them.
+ * The rows are marked closed and kept — nothing is deleted.
  */
 public final class OldShopClosing implements IShopsService {
 
@@ -70,6 +71,36 @@ public final class OldShopClosing implements IShopsService {
         }
         int closed = old.markClosed(here);
         log.info("Closed {} shop(s) from before the rework; {} in rent paid ahead given back.", closed,
+                refunded.minor());
+    }
+
+    /**
+     * The shopkeepers' offers {@code ShopBook.load} retired: their owners told how shops work now, rent paid ahead
+     * given back. Blocking; on the writer's thread.
+     */
+    public void keeperOffersRetired(List<de.raindancer.modules.shops.model.Shop> retired) {
+        if (retired.isEmpty()) {
+            return;
+        }
+        long now = clock.getAsLong();
+        Money refunded = Money.ZERO;
+        for (de.raindancer.modules.shops.model.Shop offer : retired) {
+            Money back = rent.refund(offer.rentPaidTo(), now, weeklyRent.get());
+            if (back.isPositive()) {
+                EconomyResult paid = till.give(offer.owner(), back, "Rent paid ahead for " + offer.name()
+                        + ", given back", SOURCE_REFUND);
+                if (paid.succeeded()) {
+                    refunded = refunded.plus(back);
+                } else {
+                    log.warn("Could not give {} back the rent paid ahead for {} ({}): {}", offer.ownerName(),
+                            offer.name(), back.minor(), paid.outcome());
+                    back = Money.ZERO;
+                }
+            }
+            notices.tell(new Notice(offer.owner(), now, Notice.Kind.CHEST_SHOPS, offer.id(), offer.name(), back, 0,
+                    ""));
+        }
+        log.info("Retired {} shopkeeper offer(s) for chest shops; {} in rent paid ahead given back.", retired.size(),
                 refunded.minor());
     }
 }

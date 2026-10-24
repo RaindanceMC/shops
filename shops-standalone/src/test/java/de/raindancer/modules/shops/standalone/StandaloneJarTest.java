@@ -117,23 +117,30 @@ class StandaloneJarTest {
     }
 
     @Test
-    @DisplayName("the shaded module is the module that was just built")
+    @DisplayName("the shaded module is the module that was just built, class for class")
     void theJarIsNotStale() throws IOException {
-        int inTheJar = 0;
+        Path classes = Path.of("..", "shops-module", "target", "classes");
+        java.util.Map<String, byte[]> inTheJar = new java.util.HashMap<>();
         try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(theJar()))) {
             for (ZipEntry entry = zip.getNextEntry(); entry != null; entry = zip.getNextEntry()) {
-                if (entry.getName().endsWith("shops/ShopsSettings.class")) {
-                    inTheJar = zip.readAllBytes().length;
+                if (entry.getName().startsWith("de/raindancer/modules/shops/") && entry.getName().endsWith(".class")) {
+                    inTheJar.put(entry.getName(), zip.readAllBytes());
                 }
             }
         }
-        int justBuilt = Files.readAllBytes(Path.of("..", "shops-module", "target", "classes",
-                "de", "raindancer", "modules", "shops", "ShopsSettings.class")).length;
-
-        assertThat(inTheJar)
-                .as("the ShopsSettings in the jar is not the one the module build just produced "
-                        + "— the shade picked up an older artifact, and everything shipped is that old")
-                .isEqualTo(justBuilt);
+        List<String> stale = new ArrayList<>();
+        try (var built = Files.walk(classes)) {
+            for (Path file : built.filter(path -> path.toString().endsWith(".class")).toList()) {
+                String name = classes.relativize(file).toString().replace('\\', '/');
+                if (!java.util.Arrays.equals(inTheJar.get(name), Files.readAllBytes(file))) {
+                    stale.add(name);
+                }
+            }
+        }
+        assertThat(stale)
+                .as("these classes in the jar are not the ones the module build just produced — the shade "
+                        + "picked up an older artifact, and everything shipped is that old (mvn clean install)")
+                .isEmpty();
     }
 
     @Test

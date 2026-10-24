@@ -29,7 +29,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
     private final Store asked;
     private final Location via;
 
-    /** @param via where the shopkeeper it was opened at stands; null opened from the bazaar or a list */
+    /** @param via where it was opened in person; null opened from /market or a list */
     public StoreMenu(ShopsServices services, Player viewer, Menu parent, Store store, Location via) {
         super(viewer, services.brand(), parent);
         this.services = services;
@@ -60,7 +60,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
     protected ItemStack emptyIcon() {
         return store().mayManage(viewer.getUniqueId())
                 ? Icons.of(Material.COBWEB, "<gray>Nothing for sale yet",
-                "<gray>Sneak and click your shopkeeper, then", "<gray>offer the item in your hand.")
+                "<gray>Hang an item frame on a chest and", "<gray>write a [market] sign on it.")
                 : Icons.of(Material.COBWEB, "<gray>Nothing for sale yet", "<gray>Come back later.");
     }
 
@@ -71,7 +71,7 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
         lore.add("");
         boolean manager = store().mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer);
         lore.add(!listing.here() ? "<gray>On another server" : manager ? "<yellow>Click for its back room"
-                : via == null && !services.trades().remote() ? "<gray>Buy it at the shopkeeper" : "<yellow>Click to trade");
+                : via == null && !services.trades().remote() ? "<gray>Buy it at its chest" : "<yellow>Click to trade");
         return Lines.ware(services, shop, "<white>" + Text.literal(shop.ware().label()), lore);
     }
 
@@ -95,17 +95,17 @@ public final class StoreMenu extends PaginatedMenu<Shop> implements IShopsScreen
         toolbar(4, Icons.head(store.owner(), Lines.named(store.name(), store.nameStyle(), "<gold>"),
                 store.motto().isEmpty() ? "<gray>By " + Text.literal(store.ownerName())
                         : Lines.named(store.motto(), store.mottoStyle(), "<gray>"),
-                "<dark_gray>" + entries().size() + " offers"), click ->
+                "<dark_gray>" + entries().size() + " chest shops"), click ->
                 services.messages().send(viewer, "shops.store.about", "store", store.name(), "owner",
                         store.ownerName()));
         if (store.mayManage(viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
             toolbar(6, Icons.of(Material.COMPARATOR, "<white>Look after this shop",
-                    "<gray>Offers, staff, the shopkeeper."), click -> services.screens().storeManage(viewer, store));
+                    "<gray>Name, motto, staff."), click -> services.screens().storeManage(viewer, store));
         }
     }
 
     @Override
     public String describe() {
-        return "a shop's offers, for its customers";
+        return "a shop's chest shops, for its customers";
     }
 }

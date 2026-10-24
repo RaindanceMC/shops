@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.store;
 import de.raindancer.core.data.sql.Database;
 import de.raindancer.core.social.economy.Money;
 import de.raindancer.core.ui.text.NameStyle;
+import de.raindancer.modules.shops.model.Floating;
 import de.raindancer.modules.shops.model.Prices;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Spot;
@@ -28,7 +29,8 @@ public final class ShopStore {
     }
 
     private static final String COLUMNS = "id, shop, server, world, x, y, z, owner, owner_name, name, material, ware, "
-            + "label, buy, sell, bundle, status, created, rent_paid_to, buy_limit, low_stock, name_style";
+            + "label, buy, sell, bundle, status, created, rent_paid_to, buy_limit, low_stock, name_style, sign, frame, "
+            + "floating";
 
     private final Database database;
 
@@ -39,7 +41,7 @@ public final class ShopStore {
     public boolean save(Shop shop) {
         return database.write(connection -> {
             try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO offer (" + COLUMNS + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                    "INSERT INTO offer (" + COLUMNS + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
                             + "ON CONFLICT(id) DO UPDATE SET shop = excluded.shop, server = excluded.server, "
                             + "world = excluded.world, x = excluded.x, y = excluded.y, z = excluded.z, "
                             + "owner = excluded.owner, owner_name = excluded.owner_name, name = excluded.name, "
@@ -47,7 +49,8 @@ public final class ShopStore {
                             + "buy = excluded.buy, sell = excluded.sell, bundle = excluded.bundle, "
                             + "status = excluded.status, rent_paid_to = excluded.rent_paid_to, "
                             + "buy_limit = excluded.buy_limit, low_stock = excluded.low_stock, "
-                            + "name_style = excluded.name_style")) {
+                            + "name_style = excluded.name_style, sign = excluded.sign, frame = excluded.frame, "
+                            + "floating = excluded.floating")) {
                 int at = 1;
                 row.setString(at++, shop.id().toString());
                 row.setString(at++, shop.store().toString());
@@ -70,7 +73,10 @@ public final class ShopStore {
                 row.setLong(at++, shop.rentPaidTo());
                 row.setInt(at++, shop.buyLimit());
                 row.setInt(at++, shop.lowStockAt());
-                row.setString(at, shop.nameStyle().encode());
+                row.setString(at++, shop.nameStyle().encode());
+                row.setString(at++, shop.sign() == null ? "" : shop.sign().key());
+                row.setString(at++, shop.frame() == null ? "" : shop.frame().toString());
+                row.setInt(at, shop.floating().encode());
                 row.executeUpdate();
             }
             try (PreparedStatement clear = connection.prepareStatement("DELETE FROM offer_chest WHERE offer = ?")) {
@@ -121,6 +127,38 @@ public final class ShopStore {
         });
     }
 
+    /**
+     * This server's offers from before 0.4.0 — sold at a shopkeeper, no sign — marked retired at {@code at} and
+     * handed back, once: their owners are told, their rent paid ahead given back. The rows stay as history.
+     */
+    public List<Shop> retireUnsigned(String server, long at) {
+        List<Shop> unsigned = load(server).stream().filter(shop -> shop.sign() == null).toList();
+        if (unsigned.isEmpty()) {
+            return unsigned;
+        }
+        database.write(connection -> {
+            try (PreparedStatement row = connection.prepareStatement(
+                    "UPDATE offer SET retired = ? WHERE id = ? AND retired = 0")) {
+                for (Shop shop : unsigned) {
+                    row.setLong(1, at);
+                    row.setString(2, shop.id().toString());
+                    row.addBatch();
+                }
+                row.executeBatch();
+            }
+            // Their chests are kept as history under a key of their own, so a chest shop may take the chest.
+            try (PreparedStatement chests = connection.prepareStatement(
+                    "UPDATE offer_chest SET spot = 'retired:' || offer || ':' || spot WHERE offer = ?")) {
+                for (Shop shop : unsigned) {
+                    chests.setString(1, shop.id().toString());
+                    chests.addBatch();
+                }
+                chests.executeBatch();
+            }
+        });
+        return unsigned;
+    }
+
     public List<Shop> all() {
         return load(null);
     }
@@ -151,7 +189,7 @@ public final class ShopStore {
         return database.read(connection -> {
             Map<String, List<Spot>> chests = chests(connection);
             List<Shop> shops = new ArrayList<>();
-            String sql = "SELECT " + COLUMNS + " FROM offer" + (server == null ? "" : " WHERE server = ?")
+            String sql = "SELECT " + COLUMNS + " FROM offer WHERE retired = 0" + (server == null ? "" : " AND server = ?")
                     + " ORDER BY created, id";
             try (PreparedStatement query = connection.prepareStatement(sql)) {
                 if (server != null) {
@@ -188,6 +226,18 @@ public final class ShopStore {
         return new Shop(UUID.fromString(id), UUID.fromString(rows.getString(2)), UUID.fromString(rows.getString(8)),
                 rows.getString(9), rows.getString(10), spot, chests.getOrDefault(id, List.of()), ware, prices,
                 Status.parse(rows.getString(17)), rows.getLong(18), rows.getLong(19), rows.getInt(20),
-                rows.getInt(21), NameStyle.parse(rows.getString(22)));
+                rows.getInt(21), NameStyle.parse(rows.getString(22)), Spot.parse(rows.getString(23)).orElse(null),
+                frame(rows.getString(24)), Floating.parse(rows.getInt(25)));
+    }
+
+    private static UUID frame(String written) {
+        if (written == null || written.isEmpty()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(written);
+        } catch (IllegalArgumentException broken) {
+            return null;
+        }
     }
 }
