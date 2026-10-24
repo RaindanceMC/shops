@@ -108,17 +108,18 @@ class MarketDesignsTest {
     }
 
     @Test
-    @DisplayName("houses: a door in the middle of each street front, walls up to the eaves, a roof above")
+    @DisplayName("houses: a door in the middle of each ground floor, a block in from the street; walls closed; a roof")
     void houses() {
         int x = MarketLayout.PERIOD_X;
         int z = MarketLayout.PERIOD_Z;
         boolean door = false;
         for (int v = 0; v < 25; v++) {
-            String state = designs.stateAt(x, GROUND + 1, z + v);
+            String state = designs.stateAt(x + 1, GROUND + 1, z + v);
             if (state != null && state.contains("door") && state.contains("facing=west")) {
                 door = true;
             }
-            assertThat(designs.stateAt(x, GROUND + 3, z + v)).as("the front wall is closed at " + v).isNotNull();
+            assertThat(designs.stateAt(x + 1, GROUND + 3, z + v)).as("the ground floor's front is closed at " + v)
+                    .isNotNull();
         }
         assertThat(door).as("a west-facing door on the west house row").isTrue();
         boolean roof = false;
@@ -127,6 +128,62 @@ class MarketDesignsTest {
             roof |= state != null && (state.contains("stairs") || state.contains("slab"));
         }
         assertThat(roof).as("a roof over the house").isTrue();
+    }
+
+    @Test
+    @DisplayName("the fronts have depth: jetties overhang the ground floor on brackets, windows sit in niches, "
+            + "corner posts stand proud, flower boxes, a roof over the door, the roof reaching out over the front")
+    void depth() {
+        int jetties = 0;
+        int niches = 0;
+        int brackets = 0;
+        int flowers = 0;
+        int canopies = 0;
+        int overhangs = 0;
+        for (int bx = 1; bx <= 4; bx++) {
+            int x = bx * MarketLayout.PERIOD_X;
+            for (int bz = 1; bz <= 3; bz++) {
+                int z = bz * MarketLayout.PERIOD_Z;
+                for (int v = 0; v < 25; v++) {
+                    String ground = designs.stateAt(x, GROUND + 2, z + v);
+                    String upper = designs.stateAt(x, GROUND + 7, z + v);
+                    if (upper != null && !upper.contains("log") && ground == null) {
+                        jetties++;
+                    }
+                    for (int h = 6; h <= 8; h++) {
+                        String front = designs.stateAt(x, GROUND + h, z + v);
+                        String behind = designs.stateAt(x + 1, GROUND + h, z + v);
+                        String further = designs.stateAt(x + 2, GROUND + h, z + v);
+                        if (front == null && (isGlass(behind) || (behind == null && isGlass(further)))) {
+                            niches++;
+                        }
+                    }
+                    String four = designs.stateAt(x, GROUND + 4, z + v);
+                    brackets += four != null && four.contains("stairs") && four.contains("half=top") ? 1 : 0;
+                    String two = designs.stateAt(x, GROUND + 2, z + v);
+                    flowers += two != null && two.startsWith("minecraft:potted_") ? 1 : 0;
+                    String three = designs.stateAt(x, GROUND + 3, z + v);
+                    canopies += three != null && three.contains("stairs") && three.contains("half=bottom") ? 1 : 0;
+                    for (int y = GROUND + 9; y <= MarketDesigns.highest(); y++) {
+                        String roof = designs.stateAt(x, y, z + v);
+                        if (roof != null && roof.contains("stairs")) {
+                            overhangs++;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        assertThat(jetties).as("upper floors overhanging the ground floor").isPositive();
+        assertThat(niches).as("windows set into the wall").isPositive();
+        assertThat(brackets).as("brackets under the jetties").isPositive();
+        assertThat(flowers).as("flower boxes").isPositive();
+        assertThat(canopies).as("roofs over the doors").isPositive();
+        assertThat(overhangs).as("the roof reaching out over the front").isPositive();
+    }
+
+    private static boolean isGlass(String state) {
+        return state != null && state.contains("glass");
     }
 
     @Test

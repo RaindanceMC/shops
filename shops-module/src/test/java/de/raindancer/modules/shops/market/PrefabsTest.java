@@ -64,7 +64,7 @@ class PrefabsTest {
         assertThat(designs.stateAt(westRow + 6, GROUND + 3, z + 4)).as("not as deep as the row").isNull();
         // 25 long: two of 9, and a gap of 7 built the usual way.
         assertThat(designs.stateAt(westRow, GROUND, z + 18)).isNotEqualTo("minecraft:gold_block");
-        assertThat(designs.stateAt(westRow, GROUND + 2, z + 21)).isNotNull();
+        assertThat(designs.stateAt(westRow + 1, GROUND + 3, z + 21)).as("its front wall, a block in").isNotNull();
         int eastRow = MarketLayout.PERIOD_X + 64;
         assertThat(designs.stateAt(eastRow, GROUND, z + 24)).as("the east row's, turned").isEqualTo(
                 "minecraft:gold_block");

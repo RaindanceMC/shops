@@ -27,6 +27,8 @@ public final class MarketDesigns {
             "dark_oak_log");
     private static final List<String> ROOFS = List.of("deepslate_tile", "dark_oak", "spruce", "brick",
             "deepslate_tile", "mud_brick");
+    private static final List<String> POTTED = List.of("potted_red_tulip", "potted_poppy", "potted_cornflower",
+            "potted_dandelion", "potted_azure_bluet", "potted_fern");
     private static final List<String> BASES = List.of("stone_bricks", "cobblestone", "mossy_stone_bricks",
             "tuff_bricks");
     /** Ways to split a house row (25 blocks) into houses of odd widths, so each has a ridge in its middle. */
@@ -277,7 +279,12 @@ public final class MarketDesigns {
 
     /** One house of a row: where it starts along the row, how wide it is, and what it is built of. */
     private record House(int start, int width, int floors, String plaster, String beam, String roof, String base,
-                         boolean chimney) {
+                         boolean chimney, boolean jetty, String flower) {
+
+        /** The stairs of the beams' wood: brackets under a jetty, the canopy over the door. */
+        String beamStairs() {
+            return "minecraft:" + beam.replace("stripped_", "").replace("_log", "") + "_stairs";
+        }
     }
 
     /** A row's length, along the cross street. */
@@ -344,7 +351,7 @@ public final class MarketDesigns {
         int sz = cell.bz() * 13 + 5;
         return new House(west ? end : 0, width, 2, PLASTER.get(pick(sx, sz, 43, PLASTER.size())),
                 BEAMS.get(pick(sx, sz, 44, BEAMS.size())), ROOFS.get(pick(sx, sz, 45, ROOFS.size())),
-                BASES.get(pick(sx, sz, 46, BASES.size())), false);
+                BASES.get(pick(sx, sz, 46, BASES.size())), false, true, POTTED.get(pick(sx, sz, 50, POTTED.size())));
     }
 
     private House houseAt(MarketLayout.Cell cell) {
@@ -358,7 +365,8 @@ public final class MarketDesigns {
                 return new House(start, widths[index], noise(sx, sz, 42) < 0.3 ? 3 : 2,
                         PLASTER.get(pick(sx, sz, 43, PLASTER.size())), BEAMS.get(pick(sx, sz, 44, BEAMS.size())),
                         ROOFS.get(pick(sx, sz, 45, ROOFS.size())), BASES.get(pick(sx, sz, 46, BASES.size())),
-                        noise(sx, sz, 47) < 0.45);
+                        noise(sx, sz, 47) < 0.45, noise(sx, sz, 49) < 0.65,
+                        POTTED.get(pick(sx, sz, 50, POTTED.size())));
             }
             start += widths[index];
         }
@@ -366,9 +374,16 @@ public final class MarketDesigns {
     }
 
     /**
-     * Half-timbered houses, gable to the street: a stone ground floor with a door and two windows, timbered plaster
-     * above with windows on every floor, a steep roof, sometimes a chimney with smoke. Hollow and lit inside, so the
-     * windows glow at night.
+     * Half-timbered houses, gable to the street, built in layers so the fronts have depth. From the street inwards:
+     * <ul>
+     *   <li>d = 0, the relief: corner posts standing proud the whole height, flower boxes under the ground floor's
+     *   windows, a little roof over the door, brackets carrying the jetty — and, on a jettied house, the upper floors
+     *   themselves, overhanging the ground floor by a block;</li>
+     *   <li>d = 1, the ground floor's front (and a plain house's upper floors), with the door; the gable sits here too,
+     *   under the roof that reaches out over it;</li>
+     *   <li>windows lie a block deep in whichever wall they are in, lit from inside so they glow at night.</li>
+     * </ul>
+     * The side walls that face a market street at the row's ends get windows as well, rather than a blank wall.
      */
     private String houses(MarketLayout.Cell cell, int x, int y, int z) {
         if (y < GROUND) {
@@ -381,36 +396,141 @@ public final class MarketDesigns {
             }
         }
         House house = prefabs.houses().isEmpty() ? houseAt(cell) : restOfRow(cell);
-        int w = cell.v() - house.start();
-        int d = cell.u();
-        int width = house.width();
-        int depth = MarketLayout.HOUSES;
-        int mid = (width - 1) / 2;
         String street = cell.facing() == MarketLayout.Facing.WEST ? "west" : "east";
-        boolean front = d == 0;
-        boolean back = d == depth - 1;
-        boolean side = w == 0 || w == width - 1;
-        boolean wall = front || back || side;
-        int h = y - GROUND;
+        return house(house, cell.v() - house.start(), cell.u(), y - GROUND, street);
+    }
+
+    /** One block of a house, by its own coordinates: w along the row, d in from the street, h above the ground. */
+    private String house(House house, int w, int d, int h, String street) {
+        int width = house.width();
+        int mid = (width - 1) / 2;
+        int back = MarketLayout.HOUSES - 1;
         int wallTop = house.floors() * 4 + 1;
+        boolean side = w == 0 || w == width - 1;
+        boolean rowEnd = house.start() + width == MarketLayout.PLOT * 2 + MarketLayout.HEDGE;
+        // Where two houses meet, the next one's corner post does for both: one dark column, not two side by side.
+        boolean shared = w == width - 1 && !rowEnd;
+        boolean corner = side && (d == 0 || d == back) && !(shared && d == 0);
+        String inward = opposite(street);
+        String post = "minecraft:" + house.beam() + "[axis=y]";
+        String beamAlong = "minecraft:" + house.beam() + "[axis=z]";
+        String beamAcross = "minecraft:" + house.beam() + "[axis=x]";
+        String plaster = "minecraft:" + house.plaster();
+        String base = "minecraft:" + house.base();
+        String glass = "minecraft:glass_pane[north=true,south=true]";
+        boolean upper = h > 4;
+        boolean frontLayer = house.jetty() && upper ? d == 0 : d == 1;
+        boolean windowRow = h > 0 && h <= wallTop && (upper ? (h - 1) % 4 == 1 || (h - 1) % 4 == 2 : h == 2 || h == 3);
+        boolean windowColumn = upper ? (w == mid || ((w == mid - 3 || w == mid + 3) && w > 0 && w < width - 1))
+                : (w == mid - 2 || w == mid + 2) && w > 0 && w < width - 1;
+
         if (h == 0) {
-            return wall ? "minecraft:" + house.base() : "minecraft:spruce_planks";
+            return d == 0 ? base : side || d == 1 || d == back ? base : "minecraft:spruce_planks";
         }
-        if (h <= wallTop) {
-            if (!wall) {
-                return inside(house, w, d, h, mid);
+        if (h > wallTop) {
+            return roof(house, w, d, h - wallTop, mid, width, back);
+        }
+        // Corner posts: proud of the front the whole height, flush at the back.
+        if (corner) {
+            return post;
+        }
+        // ── the relief layer ──
+        if (d == 0 && !frontLayer) {
+            if (side && !shared) {
+                return post;
             }
-            return facade(house, w, d, h, mid, wallTop, front, back, side, street);
+            if (h == 1 && windowColumn && !upper) {
+                return "minecraft:spruce_slab[type=top]";
+            }
+            if (h == 2 && windowColumn && !upper) {
+                return "minecraft:" + house.flower();
+            }
+            if (h == 3 && w >= mid - 1 && w <= mid + 1) {
+                return house.beamStairs() + "[facing=" + inward + ",half=bottom,shape=straight]";
+            }
+            if (h == 4 && house.jetty() && (w == 1 || w == width - 2 || w == mid - 1 || w == mid + 1)) {
+                return house.beamStairs() + "[facing=" + inward + ",half=top,shape=straight]";
+            }
+            return AIR;
         }
-        return roof(house, w, d, h - wallTop, mid, width, front, back);
+        // ── the front wall, wherever it stands for this floor ──
+        if (frontLayer) {
+            if (side && !(shared && d == 0)) {
+                return post;
+            }
+            if (!upper) {
+                if (w == mid && h <= 2) {
+                    return "minecraft:spruce_door[facing=" + street + ",half=" + (h == 1 ? "lower" : "upper")
+                            + ",hinge=left,open=false]";
+                }
+                if (w == mid && h == 3) {
+                    return beamAlong;
+                }
+                if (windowRow && windowColumn) {
+                    return glass;
+                }
+                return h == 4 ? beamAlong : base;
+            }
+            int level = (h - 1) % 4;
+            if (level == 0 || h == wallTop) {
+                return beamAlong;
+            }
+            if (windowRow && windowColumn) {
+                return AIR; // the niche; the glass is a block further in
+            }
+            if (width >= 7 && (w == mid - 1 || w == mid + 1)) {
+                return post;
+            }
+            return plaster;
+        }
+        // The glass of an upper window, a block behind its niche.
+        if (upper && windowRow && windowColumn && d == (house.jetty() ? 1 : 2)) {
+            return glass;
+        }
+        // ── the back wall ──
+        if (d == back) {
+            if (!upper) {
+                return windowRow && windowColumn ? glass : base;
+            }
+            int level = (h - 1) % 4;
+            if (level == 0 || h == wallTop) {
+                return beamAlong;
+            }
+            return windowRow && w == mid ? glass : plaster;
+        }
+        // ── the side walls ──
+        if (side) {
+            boolean outward = (w == 0 && house.start() == 0)
+                    || (w == width - 1 && house.start() + width == MarketLayout.PLOT * 2 + MarketLayout.HEDGE);
+            int level = (h - 1) % 4;
+            if (upper && (level == 0 || h == wallTop)) {
+                return beamAcross;
+            }
+            if (outward && windowRow && (d == 2 || d == 4)) {
+                return AIR; // a niche in the end wall that looks onto the market street
+            }
+            if (outward && d == 3 && !upper) {
+                return post;
+            }
+            return upper ? plaster : base;
+        }
+        int inner = w == 1 ? 0 : w == width - 2 ? 1 : -1;
+        if (inner >= 0 && windowRow && (d == 2 || d == 4)) {
+            boolean outward = (inner == 0 && house.start() == 0)
+                    || (inner == 1 && house.start() + width == MarketLayout.PLOT * 2 + MarketLayout.HEDGE);
+            if (outward) {
+                return "minecraft:glass_pane[east=true,west=true]";
+            }
+        }
+        return inside(house, w, d, h, mid);
     }
 
     private String inside(House house, int w, int d, int h, int mid) {
-        if (h % 4 == 0 && h > 0) {
+        if (h % 4 == 0) {
             return "minecraft:spruce_planks";
         }
         // Hanging just behind the windows, front and back, so they glow from the street at night.
-        if (h % 4 == 3 && (d == 1 || d == MarketLayout.HOUSES - 2) && (w == mid - 2 || w == mid + 2 || w == mid)
+        if (h % 4 == 3 && (d == 2 || d == MarketLayout.HOUSES - 2) && (w == mid - 2 || w == mid + 2 || w == mid)
                 && w > 0 && w < house.width() - 1) {
             return "minecraft:lantern[hanging=true]";
         }
@@ -420,42 +540,11 @@ public final class MarketDesigns {
         return AIR;
     }
 
-    private String facade(House house, int w, int d, int h, int mid, int wallTop, boolean front, boolean back,
-                          boolean side, String street) {
-        String beamAlong = "minecraft:" + house.beam() + "[axis=" + (front || back ? "z" : "x") + "]";
-        String post = "minecraft:" + house.beam() + "[axis=y]";
-        boolean corner = (front || back) && side;
-        if (h <= 4) {
-            if (corner) {
-                return post;
-            }
-            if (front && w == mid && h <= 2) {
-                return "minecraft:spruce_door[facing=" + street + ",half=" + (h == 1 ? "lower" : "upper")
-                        + ",hinge=left,open=false]";
-            }
-            if (front && h == 3 && w == mid) {
-                return beamAlong;
-            }
-            if ((front || back) && (h == 2 || h == 3) && (w == mid - 2 || w == mid + 2) && !side) {
-                return "minecraft:glass_pane[north=true,south=true]";
-            }
-            return "minecraft:" + house.base();
-        }
-        int level = (h - 1) % 4;
-        if (level == 0 || h == wallTop) {
-            return beamAlong;
-        }
-        if (corner || ((front || back) && (w == mid - 1 || w == mid + 1) && house.width() >= 7)) {
-            return post;
-        }
-        if ((front || back) && level >= 1 && level <= 2 && (w == mid || ((w == mid - 3 || w == mid + 3) && !side))) {
-            return "minecraft:glass_pane[north=true,south=true]";
-        }
-        return "minecraft:" + house.plaster();
-    }
-
-    /** The roof above the walls: stairs climbing from both eaves to a ridge over the middle, gables at both ends. */
-    private String roof(House house, int w, int d, int above, int mid, int width, boolean front, boolean back) {
+    /**
+     * The roof: stairs climbing from both eaves to a ridge over the middle, reaching out over the front to the relief
+     * layer; the gables a block in under it at the front, flush at the back.
+     */
+    private String roof(House house, int w, int d, int above, int mid, int width, int back) {
         int level = above - 1;
         if (house.chimney() && w == 1 && d == 4 && level <= mid + 1) {
             return level == mid + 1 ? "minecraft:campfire[lit=true,signal_fire=false]" : "minecraft:bricks";
@@ -473,10 +562,14 @@ public final class MarketDesigns {
         if (w == width - 1 - level) {
             return stairs + "north]";
         }
-        if (w > level && w < width - 1 - level && (front || back)) {
+        boolean gable = d == 1 || d == back;
+        if (w > level && w < width - 1 - level && gable) {
             if (w == mid) {
                 return level == mid - 1 && mid >= 3 ? "minecraft:glass_pane[north=true,south=true]"
                         : "minecraft:" + house.beam() + "[axis=y]";
+            }
+            if (level == 0) {
+                return "minecraft:" + house.beam() + "[axis=z]";
             }
             return "minecraft:" + house.plaster();
         }
