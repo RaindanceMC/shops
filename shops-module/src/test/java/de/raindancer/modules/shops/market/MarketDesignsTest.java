@@ -100,6 +100,36 @@ class MarketDesignsTest {
         assertThat(local(tent, 5, 3, 4)).isNull();
     }
 
+    @Test
+    @DisplayName("now and then a Potion of Mach Fuck: a walk-in bottle, purple to the brim, corked, a dragon's head on top")
+    void potions() {
+        java.util.List<MarketLayout.Plot> potions = layout.plotsNearest(60).stream()
+                .filter(plot -> MarketDesigns.stallVariant(plot) == 2).toList();
+        assertThat(potions).as("a few, not every plot").isNotEmpty()
+                .hasSizeLessThan(layout.plotsNearest(60).size() / 3);
+        for (MarketLayout.Plot potion : potions) {
+            String front = potion.facing() == MarketLayout.Facing.NORTH ? "north" : "south";
+            assertThat(local(potion, 1, 6, 2)).as("the liquid's glass, west").isEqualTo("minecraft:purple_stained_glass");
+            assertThat(local(potion, 10, 6, 2)).as("the liquid's glass, east").isEqualTo("minecraft:purple_stained_glass");
+            assertThat(local(potion, 1, 6, 7)).as("clear glass above the liquid").isEqualTo("minecraft:glass");
+            assertThat(local(potion, 5, 11, 3)).as("the back is closed").isNotNull();
+            for (int h = 1; h <= 3; h++) {
+                assertThat(local(potion, 5, 2, h)).as("a doorway at " + h).isNull();
+                assertThat(local(potion, 5, 3, h)).as("a way in from the street at " + h).isNull();
+                assertThat(local(potion, 6, 3, h)).as("a way in from the street at " + h).isNull();
+                assertThat(local(potion, 5, 6, h)).as("room to stand inside at " + h).isNull();
+            }
+            assertThat(local(potion, 5, 6, 9)).as("the neck is open at the shoulder").isNull();
+            assertThat(local(potion, 3, 6, 9)).as("the shoulder").isEqualTo("minecraft:glass");
+            assertThat(local(potion, 5, 6, 14)).as("the cork").contains("stripped_oak");
+            String head = local(potion, 5, 6, 15);
+            assertThat(head).startsWith("minecraft:dragon_head")
+                    .contains("rotation=" + (front.equals("north") ? 8 : 0));
+            assertThat(local(potion, 5, 6, 16)).isNull();
+            assertThat(local(potion, 5, 8, 2)).as("a brewing stand inside").startsWith("minecraft:brewing_stand");
+        }
+    }
+
     /** A plot's block by its own coordinates: u west to east, v from its street, h above the ground. */
     private String local(MarketLayout.Plot plot, int u, int v, int h) {
         int x = plot.minX() + u;
