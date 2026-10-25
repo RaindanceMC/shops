@@ -163,7 +163,7 @@ public record ShopsSettings(
     public static final ShopsSettings DEFAULTS = new ShopsSettings(
             List.of("CHEST", "TRAPPED_CHEST", "BARREL"), List.of(), 27, 24,
             "0", "0", 8, 0, "0",
-            true, true, true, 180, true, true, 30, 120,
+            true, true, true, 180, false, false, 30, 120,
             true, true, 3, "0", true, true);
 
     public int cutPercent() {

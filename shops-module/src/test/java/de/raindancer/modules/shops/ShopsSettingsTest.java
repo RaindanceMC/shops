@@ -60,10 +60,10 @@ class ShopsSettingsTest {
         assertThat(defaults.styledNames()).isTrue();
         assertThat(defaults.partialTrades()).isTrue();
         assertThat(defaults.hoppersFillShops()).isTrue();
-        assertThat(defaults.remoteBuying()).isTrue();
-        assertThat(defaults.remoteSelling()).isTrue();
-        assertThat(defaults.withRemoteSelling(false).remoteBuying()).as("each on its own").isTrue();
-        assertThat(defaults.withRemoteBuying(false).remoteSelling()).isTrue();
+        assertThat(defaults.remoteBuying()).as("customers go to the shop to buy").isFalse();
+        assertThat(defaults.remoteSelling()).isFalse();
+        assertThat(defaults.withRemoteSelling(true).remoteBuying()).as("each on its own").isFalse();
+        assertThat(defaults.withRemoteBuying(true).remoteSelling()).isFalse();
     }
 
     @Test

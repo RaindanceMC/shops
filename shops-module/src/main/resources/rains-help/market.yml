@@ -46,14 +46,14 @@ sections:
     title: Trading from afar
     when: shops:remote-buying || shops:remote-selling
     text: |
-      Yes, from the list: {if:shops:remote-buying}<white>buying</white> works from afar{/if}{if:shops:remote-buying && shops:remote-selling} and {/if}{if:shops:remote-selling}<white>selling</white> works from afar{/if}. Click a shop and its counter opens right in front of you — goods and money move exactly as if you stood at the chest. This only works for shops on the server you are on.
+      Yes, from the list: {if:shops:remote-buying}<white>buying</white> works from afar{/if}{if:shops:remote-buying && shops:remote-selling} and {/if}{if:shops:remote-selling}<white>selling</white> works from afar{/if}. Shift-click a shop{if:!shops:travel-to-shops} (or just click){/if} and its counter opens right in front of you — goods and money move exactly as if you stood at the chest. This only works for shops on the server you are on.
 
       {if:!shops:remote-buying}Buying from afar is off: for buying you must stand at the shop's chest. {/if}{if:!shops:remote-selling}Selling from afar is off: bring your goods to the chest yourself.{/if}
   - question: Can I go to a shop?
     title: Travelling to a shop
     when: shops:travel-to-shops
     text: |
-      Yes. In the list, click a shop (shift-click if trading from afar is on for it) to travel to its chest — even on another server of the network. You stand still for <white>{setting:shops:travel-warmup|seconds}</white> first; move and the trip is cancelled.{if:shops:travel-price} Each trip costs <white>{setting:shops:travel-price|money}</white>, given back if the trip does not happen.{/if}
+      Yes. In the list, click a shop to travel there — you land in front of its chest, or for a stall of the market world on the street in front of the stall, looking at it — even on another server of the network. You stand still for <white>{setting:shops:travel-warmup|seconds}</white> first; move and the trip is cancelled.{if:shops:travel-price} Each trip costs <white>{setting:shops:travel-price|money}</white>, given back if the trip does not happen.{/if}
 
       The shop's land still decides whether you may come: if its owner has shut the door, the trip is refused.
   - question: Are shops on other servers listed?

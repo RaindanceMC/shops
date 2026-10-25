@@ -87,7 +87,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.7.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.8.0")
             .describedAs("Players' own chest shops: an item frame and a [market] sign on a chest, what it sells "
                     + "floating over it, /market to find and trade from afar, reviews and statements; a market "
                     + "world of endless streets with stall plots that rotate")
@@ -165,7 +165,7 @@ public final class ShopsModule implements FlexModule {
         ReviewService reviews = new ReviewService(context.plugin(), book, notices, now, clock);
         travel = new Travel(context.plugin(), context.core().safety(), context.core().audit());
         ShopTravel going = new ShopTravel(context.plugin(), travel, context.core().land(), context.core().messages(),
-                locator, context.core().networkTravel(), now);
+                locator, context.core().networkTravel(), plots, now);
 
         MarketWorld marketWorld = new MarketWorld(new MarketGenerator(designs), marketSettings::current, log);
         MarketRotation rotation = new MarketRotation(context.plugin(), plots, book, context.core().chunks(), notices,

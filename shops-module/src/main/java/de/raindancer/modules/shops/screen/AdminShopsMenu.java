@@ -72,7 +72,7 @@ public final class AdminShopsMenu extends PaginatedMenu<Shop> implements IShopsS
         } else if (event.isRightClick()) {
             viewer.closeInventory();
             Optional<de.raindancer.modules.shops.model.Refusal> refused =
-                    services.travel().go(viewer, shop.spot(), shop.name());
+                    services.travel().go(viewer, shop);
             refused.ifPresent(why -> services.refuse(viewer, why));
         } else {
             new ShopManageMenu(services, viewer, this, shop).open();

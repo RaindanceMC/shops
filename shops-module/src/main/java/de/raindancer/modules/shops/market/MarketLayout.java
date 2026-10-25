@@ -74,6 +74,11 @@ public final class MarketLayout {
         public double centreZ() {
             return minZ + PLOT / 2.0;
         }
+
+        /** The sidewalk in front of the plot, along z. */
+        public double frontZ() {
+            return facing() == Facing.NORTH ? minZ - 1.5 : maxZ() + 2.5;
+        }
     }
 
     /**

@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The market: every chest shop, searched by what it trades, cheapest first. Click to trade from here (when
- * remote trades are on and the shop is on this server), shift click to go to its shopkeeper, right click for the
- * whole shop.
+ * The market: every chest shop, searched by what it trades, cheapest first. Click to go to the shop (buying happens
+ * there), shift click to trade from here when that is switched on and the shop is on this server, right click for
+ * the whole shop.
  */
 public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements IShopsScreen {
 
@@ -79,14 +79,15 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     protected ItemStack icon(Listing listing) {
         List<String> lore = new ArrayList<>(Lines.listing(listing));
         lore.add("");
+        boolean travel = services.travel().enabled();
         boolean remote = listing.here() && services.trades().remote(side);
-        if (remote) {
-            lore.add("<yellow>Click to trade from here");
-        }
-        if (services.travel().enabled()) {
+        if (travel) {
             String fee = Fees.format(Fees.amount(services.config().travelPrice()));
-            lore.add("<yellow>" + (remote ? "Shift click" : "Click") + " to go to the shop"
+            lore.add("<yellow>Click to go to the shop"
                     + (Fees.amount(services.config().travelPrice()).isPositive() ? " <gray>(" + fee + ")" : ""));
+        }
+        if (remote) {
+            lore.add("<yellow>" + (travel ? "Shift click" : "Click") + " to trade from here");
         }
         lore.add("<yellow>Right click for the whole shop");
         return Lines.ware(services, listing.shop(), "<white>" + Text.literal(listing.shop().ware().label()), lore);
@@ -100,13 +101,14 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
                     () -> services.refuse(viewer, Refusal.GONE));
             return;
         }
-        if (!event.isShiftClick() && listing.here() && services.trades().remote(side)) {
+        boolean remote = listing.here() && services.trades().remote(side);
+        if (remote && (event.isShiftClick() || !services.travel().enabled())) {
             services.trades().prepare(listing.shop()).thenRun(() -> Scheduling.entity(services.plugin(), viewer,
                     () -> new ShopFrontMenu(services, viewer, this, listing.shop(), null).open()));
             return;
         }
         viewer.closeInventory();
-        Optional<Refusal> refused = services.travel().go(viewer, listing.shop().spot(), listing.shop().name());
+        Optional<Refusal> refused = services.travel().go(viewer, listing.shop());
         refused.ifPresent(why -> services.refuse(viewer, why));
     }
 

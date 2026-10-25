@@ -278,8 +278,7 @@ public final class MarketPlots implements IShopsService {
     /** Where to stand in front of a plot: on the sidewalk at its middle, looking at it. */
     public Location front(World world, MarketLayout.Plot plot) {
         boolean north = plot.facing() == MarketLayout.Facing.NORTH;
-        double z = north ? plot.minZ() - 1.5 : plot.maxZ() + 2.5;
-        return new Location(world, plot.centreX(), MarketDesigns.GROUND + 1, z, north ? 0 : 180, 10);
+        return new Location(world, plot.centreX(), MarketDesigns.GROUND + 1, plot.frontZ(), north ? 0 : 180, 10);
     }
 
     /** The claims after a rotation moved them: in memory at once, on disk through the writer. */
