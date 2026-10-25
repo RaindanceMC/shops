@@ -87,7 +87,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.8.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.9.0")
             .describedAs("Players' own chest shops: an item frame and a [market] sign on a chest, what it sells "
                     + "floating over it, /market to find and trade from afar, reviews and statements; a market "
                     + "world of endless streets with stall plots that rotate")
@@ -250,6 +250,19 @@ public final class ShopsModule implements FlexModule {
                 context.core()::serverName, clock, log);
         writer.write(closing::closeAll);
         writer.write(() -> closing.keeperOffersRetired(retired));
+
+        // Screens for /screen — Core 2.10.0; on an older Core there are simply none.
+        try {
+            var screensHub = context.core().screens();
+            if (screensHub != null) {
+                new de.raindancer.modules.shops.service.ShopScreens(book, () -> services.config().browseNetwork())
+                        .register(screensHub, context.plugin());
+                context.closeWith(() -> de.raindancer.modules.shops.service.ShopScreens.KINDS
+                        .forEach(screensHub::unregister));
+            }
+        } catch (LinkageError olderCore) {
+            log.info("RainsCore is older than 2.10.0: no market screens until it is updated.");
+        }
 
         ShopsCommands.ready(services);
         log.info("Shops is up: {} chest shop(s) here, {} shop(s) on the network.", index.count(),
