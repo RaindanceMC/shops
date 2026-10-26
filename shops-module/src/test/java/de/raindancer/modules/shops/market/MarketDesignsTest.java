@@ -101,32 +101,37 @@ class MarketDesignsTest {
     }
 
     @Test
-    @DisplayName("now and then a Potion of Mach Fuck: a walk-in bottle, purple to the brim, corked, a dragon's head on top")
+    @DisplayName("now and then a Potion of Mach Fuck, as the item looks: a tall bottle on four rocket fins, purple, "
+            + "a blue band, a white nose and neck, a red stopper")
     void potions() {
         java.util.List<MarketLayout.Plot> potions = layout.plotsNearest(60).stream()
                 .filter(plot -> MarketDesigns.stallVariant(plot) == 2).toList();
         assertThat(potions).as("a few, not every plot").isNotEmpty()
                 .hasSizeLessThan(layout.plotsNearest(60).size() / 3);
         for (MarketLayout.Plot potion : potions) {
-            String front = potion.facing() == MarketLayout.Facing.NORTH ? "north" : "south";
-            assertThat(local(potion, 1, 6, 2)).as("the liquid's glass, west").isEqualTo("minecraft:purple_stained_glass");
-            assertThat(local(potion, 10, 6, 2)).as("the liquid's glass, east").isEqualTo("minecraft:purple_stained_glass");
-            assertThat(local(potion, 1, 6, 7)).as("clear glass above the liquid").isEqualTo("minecraft:glass");
-            assertThat(local(potion, 5, 11, 3)).as("the back is closed").isNotNull();
-            for (int h = 1; h <= 3; h++) {
-                assertThat(local(potion, 5, 2, h)).as("a doorway at " + h).isNull();
-                assertThat(local(potion, 5, 3, h)).as("a way in from the street at " + h).isNull();
-                assertThat(local(potion, 6, 3, h)).as("a way in from the street at " + h).isNull();
-                assertThat(local(potion, 5, 6, h)).as("room to stand inside at " + h).isNull();
+            assertThat(local(potion, 5, 6, 1)).as("the base").isEqualTo("minecraft:polished_andesite");
+            assertThat(local(potion, 5, 6, 5)).as("the liquid").isEqualTo("minecraft:purple_concrete");
+            assertThat(local(potion, 2, 6, 5)).as("the glass round it").isEqualTo("minecraft:white_stained_glass");
+            assertThat(local(potion, 5, 6, 8)).as("the band").isEqualTo("minecraft:blue_concrete");
+            assertThat(local(potion, 5, 6, 14)).as("glass over the liquid").isEqualTo("minecraft:white_stained_glass");
+            assertThat(local(potion, 5, 6, 16)).as("the nose").isEqualTo("minecraft:white_stained_glass");
+            assertThat(local(potion, 5, 6, 18)).as("the neck").isEqualTo("minecraft:white_concrete");
+            assertThat(local(potion, 4, 6, 19)).as("the lip").isEqualTo("minecraft:smooth_stone");
+            assertThat(local(potion, 5, 6, 21)).as("the stopper").isEqualTo("minecraft:red_concrete");
+            assertThat(local(potion, 4, 5, 21)).as("the stopper stands turned, a diamond").isNull();
+            assertThat(local(potion, 5, 6, 22)).isNull();
+            for (int[] fin : new int[][]{{0, 6}, {10, 6}, {5, 1}, {5, 11}}) {
+                assertThat(local(potion, fin[0], fin[1], 3)).as("a fin at " + fin[0] + " " + fin[1])
+                        .isEqualTo("minecraft:polished_andesite");
             }
-            assertThat(local(potion, 5, 6, 9)).as("the neck is open at the shoulder").isNull();
-            assertThat(local(potion, 3, 6, 9)).as("the shoulder").isEqualTo("minecraft:glass");
-            assertThat(local(potion, 5, 6, 14)).as("the cork").contains("stripped_oak");
-            String head = local(potion, 5, 6, 15);
-            assertThat(head).startsWith("minecraft:dragon_head")
-                    .contains("rotation=" + (front.equals("north") ? 8 : 0));
-            assertThat(local(potion, 5, 6, 16)).isNull();
-            assertThat(local(potion, 5, 8, 2)).as("a brewing stand inside").startsWith("minecraft:brewing_stand");
+            for (int[] tip : new int[][]{{1, 6}, {9, 6}, {5, 2}, {5, 10}}) {
+                assertThat(local(potion, tip[0], tip[1], 6)).as("a fin's red tip").isEqualTo("minecraft:red_concrete");
+            }
+            assertThat(local(potion, 1, 1, 3)).as("air between the fins").isNull();
+            for (int h = 0; h <= 22; h++) {
+                assertThat(local(potion, 11, 6, h)).as("the free strip by the hedge").isEqualTo(h == 0
+                        ? "minecraft:grass_block" : null);
+            }
         }
     }
 

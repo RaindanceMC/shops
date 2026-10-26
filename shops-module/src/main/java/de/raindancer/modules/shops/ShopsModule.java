@@ -87,7 +87,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.10.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.10.1")
             .describedAs("Players' own chest shops: an item frame and a [market] sign on a chest, what it sells "
                     + "floating over it, /market to find and trade from afar, reviews and statements; a market "
                     + "world of endless streets with stall plots that rotate")

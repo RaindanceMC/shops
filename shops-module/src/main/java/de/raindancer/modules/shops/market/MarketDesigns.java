@@ -162,7 +162,7 @@ public final class MarketDesigns {
             return "minecraft:dirt";
         }
         if (stallVariant(cell.plot()) == 2) {
-            return potion(cell, x, y, z);
+            return potion(cell, y);
         }
         if (y == GROUND) {
             return floor ? "minecraft:spruce_planks" : "minecraft:grass_block";
@@ -227,80 +227,50 @@ public final class MarketDesigns {
         return AIR;
     }
 
+    /** A box of one block state in a plot's own coordinates: u across, h above the ground, v from the street. */
+    private record Part(String state, int u0, int u1, int h0, int h1, int v0, int v1) {
+        boolean has(int u, int h, int v) {
+            return u >= u0 && u < u1 && h >= h0 && h < h1 && v >= v0 && v < v1;
+        }
+    }
+
+    private static final String RED = "minecraft:red_concrete";
+    private static final String STEEL = "minecraft:polished_andesite";
+    private static final String CLEAR = "minecraft:white_stained_glass";
+    private static final String WHITE = "minecraft:white_concrete";
+    private static final String BAND = "minecraft:blue_concrete";
+    private static final String LIQUID = "minecraft:purple_concrete";
+
     /**
-     * The Potion of Mach Fuck as a stall: a bottle as big as the plot, purple to the brim, a doorway cut in at the
-     * street, a brewing stand inside, the neck corked and the dragon's head it is brewed from on top, looking at the
-     * street. Round about (5.5, 6.5) of the plot, so the same whichever way the plot faces.
+     * The Potion of Mach Fuck as the item looks (dnd's potion_of_mach_fuck.json), 1.4 blocks to its pixel, centred on
+     * (5, 6); like the model, each part is two crossed boxes. First match wins.
      */
-    private static String potion(MarketLayout.Cell cell, int x, int y, int z) {
-        int u = cell.u();
-        int v = cell.v();
+    private static final List<Part> POTION = List.of(
+            new Part(RED, 5, 6, 20, 22, 5, 8), new Part(RED, 4, 7, 20, 22, 6, 7), // stopper, turned 45°
+            new Part("minecraft:smooth_stone", 4, 7, 19, 20, 5, 8), // lip
+            new Part(WHITE, 4, 7, 17, 19, 6, 7), new Part(WHITE, 5, 6, 17, 19, 5, 8), // neck
+            new Part(CLEAR, 3, 8, 15, 17, 5, 8), new Part(CLEAR, 4, 7, 15, 17, 4, 9), // nose
+            new Part(BAND, 2, 9, 8, 9, 4, 9), new Part(BAND, 3, 8, 8, 9, 3, 10),
+            new Part(LIQUID, 3, 8, 3, 13, 5, 8), new Part(LIQUID, 4, 7, 3, 13, 4, 9),
+            new Part(CLEAR, 2, 9, 2, 15, 5, 8), new Part(CLEAR, 4, 7, 2, 15, 3, 10), // glass
+            new Part(STEEL, 2, 9, 1, 2, 4, 9), new Part(STEEL, 3, 8, 1, 2, 3, 10), // base
+            new Part(RED, 9, 10, 6, 7, 6, 7), new Part(RED, 1, 2, 6, 7, 6, 7), // fin tips
+            new Part(RED, 5, 6, 6, 7, 10, 11), new Part(RED, 5, 6, 6, 7, 2, 3),
+            new Part(STEEL, 8, 11, 1, 6, 6, 7), new Part(STEEL, 0, 3, 1, 6, 6, 7), // fins
+            new Part(STEEL, 5, 6, 1, 6, 9, 12), new Part(STEEL, 5, 6, 1, 6, 1, 4));
+
+    /** The Potion of Mach Fuck as a stall: the item, a little over twenty blocks high, standing on its fins. */
+    private static String potion(MarketLayout.Cell cell, int y) {
         int h = y - GROUND;
-        double du = u - 5.5;
-        double dv = v - 6.5;
-        double d2 = du * du + dv * dv;
-        boolean core = d2 <= 0.5;
         if (h == 0) {
-            if (d2 <= 21) {
-                return "minecraft:amethyst_block";
-            }
-            return (u == 5 || u == 6) && v <= 1 ? "minecraft:spruce_planks" : "minecraft:grass_block";
+            return "minecraft:grass_block";
         }
-        if (h <= 8) {
-            if (d2 > 21) {
-                if (h == 1 && v == 1 && (u == 3 || u == 8)) {
-                    return "minecraft:barrel[facing=up]";
-                }
-                return h == 2 && v == 1 && (u == 3 || u == 8) ? "minecraft:potted_allium" : AIR;
-            }
-            if (bottleWall(u, v)) {
-                if (dv < 0 && (u == 5 || u == 6) && h <= 3) {
-                    return AIR;
-                }
-                if (h > 5) {
-                    return "minecraft:glass";
-                }
-                return h >= 3 && noise(x, z + h * 5, 41) < 0.12 ? "minecraft:magenta_stained_glass"
-                        : "minecraft:purple_stained_glass";
-            }
-            if (v == 8 && (u == 5 || u == 6)) {
-                if (h == 1) {
-                    return "minecraft:barrel[facing=up]";
-                }
-                if (h == 2) {
-                    return u == 5 ? "minecraft:brewing_stand" : "minecraft:cauldron";
-                }
-            }
-            return h == 8 && v == 6 && (u == 3 || u == 8) ? "minecraft:lantern[hanging=true]" : AIR;
-        }
-        String face = cell.plot().facing() == MarketLayout.Facing.NORTH ? "8" : "0";
-        return switch (h) {
-            case 9 -> d2 <= 21 && !core ? "minecraft:glass" : AIR;
-            case 10 -> d2 <= 9 && !core ? "minecraft:glass" : AIR;
-            case 11, 12 -> d2 <= 3.24 && !core ? "minecraft:glass" : AIR;
-            case 13 -> core ? "minecraft:stripped_oak_wood[axis=y]" : d2 <= 4.5 ? "minecraft:glass" : AIR;
-            case 14 -> core ? "minecraft:stripped_oak_wood[axis=y]" : AIR;
-            case 15 -> u == 5 && v == 6 ? "minecraft:dragon_head[rotation=" + face + "]" : AIR;
-            default -> AIR;
-        };
-    }
-
-    /** Next to outside even across a corner, so the wall is closed, not just touching at the corners. */
-    private static boolean bottleWall(int u, int v) {
-        for (int du = -1; du <= 1; du++) {
-            for (int dv = -1; dv <= 1; dv++) {
-                if (!inBottle(u + du, v + dv)) {
-                    return true;
-                }
+        for (Part part : POTION) {
+            if (part.has(cell.u(), h, cell.v())) {
+                return part.state();
             }
         }
-        return false;
-    }
-
-    private static boolean inBottle(int u, int v) {
-        double du = u - 5.5;
-        double dv = v - 6.5;
-        return du * du + dv * dv <= 21;
+        return AIR;
     }
 
     /** An unbuilt plot with one of the owner's own stalls on it, centred across the plot, its front at the street. */
