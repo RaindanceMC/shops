@@ -158,13 +158,24 @@ public record ShopsSettings(
         @Describe("Whether the item, the price and the name float over each chest shop, always to be seen. Each owner "
                 + "may switch each line off for their own shop; off here, nothing floats anywhere.")
         @Key("floating-lines")
-        boolean floatingLines) {
+        boolean floatingLines,
+
+        @In("shops/finding") @Title("Seconds the floating item takes to turn round") @Range(min = 0, max = 60)
+        @Describe("The item over each chest shop slowly turns round, once in this many seconds. 0 keeps it still, "
+                + "facing whoever looks at it.")
+        @Key("item-spin-seconds")
+        int itemSpinSeconds,
+
+        @In("shops/finding") @Title("Floating item bobs up and down")
+        @Describe("Whether the item over each chest shop gently rises and sinks, like an item dropped on the ground.")
+        @Key("item-bobs")
+        boolean itemBobs) {
 
     public static final ShopsSettings DEFAULTS = new ShopsSettings(
             List.of("CHEST", "TRAPPED_CHEST", "BARREL"), List.of(), 27, 24,
             "0", "0", 8, 0, "0",
             true, true, true, 180, false, false, 30, 120,
-            true, true, 3, "0", true, true);
+            true, true, 3, "0", true, true, 6, true);
 
     public int cutPercent() {
         return Math.max(0, Math.min(100, serverCutPercent));
@@ -203,56 +214,76 @@ public record ShopsSettings(
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, percent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remoteSelling, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
     }
 
     public ShopsSettings withPartialTrades(boolean partial) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partial, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remoteSelling, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
     }
 
     public ShopsSettings withRentPerWeek(String rent) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rent,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remoteSelling, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
     }
 
     public ShopsSettings withOpeningPrice(String price) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, price, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remoteSelling, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
     }
 
     public ShopsSettings withMostChestShops(int most) {
         return new ShopsSettings(containers, closedWorlds, most, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remoteSelling, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
     }
 
     public ShopsSettings withRemoteSelling(boolean remote) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remote, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
     }
 
     public ShopsSettings withRemoteBuying(boolean remote) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remote, remoteSelling, reviewDays,
-                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines);
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, itemSpinSeconds, itemBobs);
+    }
+
+    /** Ticks for one turn of the floating item, 0 for none. */
+    public int spinTicks() {
+        return Math.max(0, Math.min(60, itemSpinSeconds)) * 20;
+    }
+
+    public ShopsSettings withItemSpinSeconds(int seconds) {
+        return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
+                mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines, seconds, itemBobs);
+    }
+
+    public ShopsSettings withItemBobs(boolean bobs) {
+        return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
+                mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
+                keepTradesDays, remoteBuying, remoteSelling, reviewDays,
+                longestReview, browseNetwork, travelToShops, travelWarmup, travelPrice, styledNames, floatingLines,
+                itemSpinSeconds, bobs);
     }
 
     public ShopsSettings withFloatingLines(boolean floating) {
         return new ShopsSettings(containers, closedWorlds, mostChestShops, longestName, openingPrice, rentPerWeek,
                 mostWeeksAhead, serverCutPercent, mostPrice, partialTrades, hoppersFillShops, tellOnlineOwners,
                 keepTradesDays, remoteBuying, remoteSelling, reviewDays, longestReview, browseNetwork, travelToShops, travelWarmup,
-                travelPrice, styledNames, floating);
+                travelPrice, styledNames, floating, itemSpinSeconds, itemBobs);
     }
 
     /** Every chest and barrel there is, for the stock-containers page — never an ender chest. */

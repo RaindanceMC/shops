@@ -74,5 +74,23 @@ class ShopsSettingsTest {
         assertThat(defaults.withMostChestShops(-1).shopLimit()).isZero();
         assertThat(defaults.withMostChestShops(9_000).shopLimit()).isEqualTo(500);
         assertThat(defaults.withFloatingLines(false).floatingLines()).isFalse();
+        assertThat(defaults.withItemSpinSeconds(-4).spinTicks()).as("still").isZero();
+        assertThat(defaults.withItemSpinSeconds(999).spinTicks()).isEqualTo(60 * 20);
+    }
+
+    @Test
+    @DisplayName("the floating item turns round once every six seconds")
+    void spins() {
+        assertThat(defaults.spinTicks()).isEqualTo(120);
+        assertThat(defaults.withItemSpinSeconds(0).spinTicks()).isZero();
+    }
+
+    @Test
+    @DisplayName("and bobs like a dropped item, switched off on its own")
+    void bobs() {
+        assertThat(defaults.itemBobs()).isTrue();
+        assertThat(defaults.withItemBobs(false).itemBobs()).isFalse();
+        assertThat(defaults.withItemBobs(false).spinTicks()).as("the turn stays").isEqualTo(120);
+        assertThat(defaults.withItemSpinSeconds(0).itemBobs()).isTrue();
     }
 }

@@ -3,6 +3,7 @@ package de.raindancer.modules.shops.visual;
 import de.raindancer.core.platform.util.Scheduling;
 import de.raindancer.core.social.economy.Fees;
 import de.raindancer.core.ui.messages.Messages;
+import de.raindancer.core.ui.effect.Hover;
 import de.raindancer.core.ui.text.Gradients;
 import de.raindancer.modules.shops.ShopsSettings;
 import de.raindancer.modules.shops.model.Floating;
@@ -36,11 +37,13 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The item, the price and the name floating over every chest shop, each line its owner's to switch off. Never saved
  * with the chunk: a display that outlived its shop after a crash would advertise a shop that is gone, so they are
- * drawn again whenever a shop's chunk loads.
+ * drawn again whenever a shop's chunk loads — which also ends the item's motion timer, as it lives on the entity.
  */
 public final class ShopDisplays implements IShopsService {
 
     public static final String MARK = "shop-display";
+    /** A dropped item's. */
+    private static final float BOB = 0.1f;
 
     private final Plugin plugin;
     private final ShopBook book;
@@ -64,9 +67,10 @@ public final class ShopDisplays implements IShopsService {
 
     @Override
     public void settings(ShopsSettings fresh) {
-        boolean was = settings.floatingLines();
+        ShopsSettings was = settings;
         settings = fresh;
-        if (was != fresh.floatingLines()) {
+        if (was.floatingLines() != fresh.floatingLines() || was.spinTicks() != fresh.spinTicks()
+                || was.itemBobs() != fresh.itemBobs()) {
             showAll();
         }
     }
@@ -159,6 +163,7 @@ public final class ShopDisplays implements IShopsService {
                     new Vector3f(0.45f, 0.45f, 0.45f), new AxisAngle4f()));
             prepare(entity, shop);
         });
+        new Hover(settings.spinTicks(), settings.itemBobs() ? BOB : 0).start(plugin, display);
         return display.getUniqueId();
     }
 
