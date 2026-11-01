@@ -45,4 +45,17 @@ public final class RotationRule implements IShopsRule {
         }
         return new int[]{to.minX() + u, to.minZ() + w};
     }
+
+    /**
+     * The highest layer that moves with a plot: the whole building height, and higher where something was built
+     * higher (staff may, and the height can be lowered after stalls were built) — never above the world.
+     */
+    public static int top(int ground, int buildHeight, int highestBuilt, int worldTop) {
+        return Math.min(worldTop, Math.max(ground + buildHeight, highestBuilt));
+    }
+
+    /** Whether every plot written onto is also read — only then may what stands on it be cleared before writing. */
+    public static boolean readsEveryTarget(Map<MarketLayout.Plot, MarketLayout.Plot> moves) {
+        return moves.keySet().containsAll(moves.values());
+    }
 }

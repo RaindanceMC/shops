@@ -15,15 +15,20 @@ import de.raindancer.modules.shops.model.Spot;
 import de.raindancer.modules.shops.rules.PlotBuildRule;
 import de.raindancer.modules.shops.rules.RotationRule;
 import org.bukkit.Bukkit;
+import org.bukkit.HeightMap;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.TileState;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Hanging;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -54,6 +59,10 @@ import java.util.stream.Stream;
  * its new plot, turned round when that plot faces the other street; then (4) the chest shops on them, the claims and
  * the owners hear of it. A plot that cannot be read stops the whole rotation before anything is written, and the
  * entities already taken up are put back where they were.
+ *
+ * <p>A plot moves from under the street up to its highest block, however far above the building height that is.
+ * Before a build is written onto a plot, everything still holding items there is emptied (it was read already):
+ * overwriting a full chest with another block spills its contents, Paper offers no way round that.
  */
 public final class MarketRotation implements IShopsService {
 
@@ -74,7 +83,7 @@ public final class MarketRotation implements IShopsService {
     private final AtomicBoolean running = new AtomicBoolean();
 
     /** A plot as it was read: its blocks (snapshots, contents and all) and its entities, serialised. */
-    private record Taken(MarketLayout.Plot plot, List<BlockState> blocks, List<TakenEntity> entities) {
+    private record Taken(MarketLayout.Plot plot, int top, List<BlockState> blocks, List<TakenEntity> entities) {
     }
 
     private record TakenEntity(byte[] data, double x, double y, double z, float yaw, float pitch, BlockFace facing) {
@@ -132,6 +141,10 @@ public final class MarketRotation implements IShopsService {
             plots.layout().plot(claim.plot()).ifPresent(built::add);
         }
         Map<MarketLayout.Plot, MarketLayout.Plot> moves = rule.moves(built, plots.layout().order());
+        if (!RotationRule.readsEveryTarget(moves)) {
+            running.set(false);
+            return CompletableFuture.failedFuture(new IllegalStateException("a plot would be written unread"));
+        }
         if (moves.isEmpty()) {
             running.set(false);
             plots.rotated(Map.of(), clock.getAsLong());
@@ -270,8 +283,14 @@ public final class MarketRotation implements IShopsService {
                 || !world.isChunkLoaded(plot.maxX() >> 4, plot.maxZ() >> 4)) {
             throw new IllegalStateException("plot " + plot.key() + " is not loaded");
         }
+        int highest = world.getMinHeight();
+        for (int x = plot.minX(); x <= plot.maxX(); x++) {
+            for (int z = plot.minZ(); z <= plot.maxZ(); z++) {
+                highest = Math.max(highest, world.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE));
+            }
+        }
+        int top = RotationRule.top(MarketDesigns.GROUND, market.get().height(), highest, world.getMaxHeight() - 1);
         List<BlockState> blocks = new ArrayList<>();
-        int top = MarketDesigns.GROUND + market.get().height();
         for (int x = plot.minX(); x <= plot.maxX(); x++) {
             for (int z = plot.minZ(); z <= plot.maxZ(); z++) {
                 for (int y = MarketDesigns.GROUND - PlotBuildRule.DEPTH; y <= top; y++) {
@@ -280,7 +299,10 @@ public final class MarketRotation implements IShopsService {
             }
         }
         List<TakenEntity> entities = new ArrayList<>();
-        for (Entity entity : world.getNearbyEntities(plots.box(plot))) {
+        // A little above the top too: a stand or a frame on the highest block.
+        BoundingBox box = plots.box(plot).union(new BoundingBox(plot.minX(), MarketDesigns.GROUND, plot.minZ(),
+                plot.maxX() + 1, top + 3, plot.maxZ() + 1));
+        for (Entity entity : world.getNearbyEntities(box)) {
             if (entity instanceof Player player) {
                 player.teleportAsync(plots.front(world, plot));
                 continue;
@@ -294,7 +316,7 @@ public final class MarketRotation implements IShopsService {
                     at.getYaw(), at.getPitch(), facing));
             entity.remove();
         }
-        return new Taken(plot, blocks, entities);
+        return new Taken(plot, top, blocks, entities);
     }
 
     // ------------------------------------------------------------------ 3. writing every plot
@@ -308,7 +330,7 @@ public final class MarketRotation implements IShopsService {
             CompletableFuture<Void> write = new CompletableFuture<>();
             plots.onPlot(world, to, () -> {
                 try {
-                    put(world, from, to);
+                    put(world, from, to, taken.get(to).top());
                     write.complete(null);
                 } catch (RuntimeException failed) {
                     log.error(failed, "Writing plot {} onto {} failed part way; the backup has both as they were",
@@ -321,8 +343,13 @@ public final class MarketRotation implements IShopsService {
         return CompletableFuture.allOf(writes.toArray(CompletableFuture[]::new));
     }
 
-    /** On the target plot's thread: every block of the build, turned when it must be, without physics; then entities. */
-    private void put(World world, Taken from, MarketLayout.Plot to) {
+    /**
+     * On the target plot's thread: the plot emptied, every block of the build, turned when it must be, without physics;
+     * what stood higher on the target than the build reaches cleared; then entities.
+     */
+    private void put(World world, Taken from, MarketLayout.Plot to, int targetTop) {
+        int bottom = MarketDesigns.GROUND - PlotBuildRule.DEPTH;
+        empty(world, to, bottom, targetTop);
         boolean turn = RotationRule.turns(from.plot(), to);
         for (BlockState state : from.blocks()) {
             int[] at = RotationRule.place(from.plot(), to, state.getX(), state.getZ());
@@ -334,7 +361,31 @@ public final class MarketRotation implements IShopsService {
             }
             placed.update(true, false);
         }
+        for (int x = to.minX(); x <= to.maxX(); x++) {
+            for (int z = to.minZ(); z <= to.maxZ(); z++) {
+                for (int y = from.top() + 1; y <= targetTop; y++) {
+                    world.getBlockAt(x, y, z).setType(Material.AIR, false);
+                }
+            }
+        }
         spawn(world, from, to);
+    }
+
+    /**
+     * Every block entity on the plot put back as it is but empty — the same block, so nothing spills — before anything
+     * is written over it. Its contents were read already and go with its build.
+     */
+    private static void empty(World world, MarketLayout.Plot plot, int bottom, int top) {
+        for (int x = plot.minX(); x <= plot.maxX(); x++) {
+            for (int z = plot.minZ(); z <= plot.maxZ(); z++) {
+                for (int y = bottom; y <= top; y++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (block.getState(false) instanceof TileState) {
+                        block.getBlockData().createBlockState().copy(block.getLocation()).update(true, false);
+                    }
+                }
+            }
+        }
     }
 
     private void spawn(World world, Taken from, MarketLayout.Plot to) {

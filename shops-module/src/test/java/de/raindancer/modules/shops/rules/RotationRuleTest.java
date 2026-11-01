@@ -53,4 +53,21 @@ class RotationRuleTest {
         assertThat(same[0]).isEqualTo(alsoNorth.minX() + 2);
         assertThat(same[1]).isEqualTo(alsoNorth.minZ() + 5);
     }
+
+    @Test
+    @DisplayName("a stall moves whole, however high: up to the building height, or higher where somebody built higher")
+    void height() {
+        assertThat(RotationRule.top(64, 24, 70, 319)).as("a low stall still takes the plot's air").isEqualTo(88);
+        assertThat(RotationRule.top(64, 24, 110, 319)).as("a stall above the building height").isEqualTo(110);
+        assertThat(RotationRule.top(64, 24, 400, 319)).as("never above the world").isEqualTo(319);
+    }
+
+    @Test
+    @DisplayName("every plot written onto was read first — a rotation is a ring, nothing is overwritten unread")
+    void ringOnly() {
+        List<MarketLayout.Plot> near = layout.plotsNearest(5);
+        Map<MarketLayout.Plot, MarketLayout.Plot> moves = rule.moves(Set.copyOf(near), layout.order());
+        assertThat(RotationRule.readsEveryTarget(moves)).isTrue();
+        assertThat(RotationRule.readsEveryTarget(Map.of(near.get(0), near.get(1)))).isFalse();
+    }
 }
