@@ -32,7 +32,7 @@ final class Lines {
 
     /** A refusal's sentence without its colours, for the reason under a greyed button. */
     static String reason(ShopsServices services, Refusal why) {
-        return MINI.stripTags(services.messages().raw(why.key()));
+        return services.reason(why);
     }
 
     static List<String> prices(Shop shop) {

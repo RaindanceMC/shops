@@ -5,6 +5,7 @@ import de.raindancer.modules.shops.model.Listing;
 import de.raindancer.modules.shops.model.Rating;
 import de.raindancer.modules.shops.model.Shop;
 import de.raindancer.modules.shops.model.Store;
+import de.raindancer.modules.shops.model.Trade;
 import de.raindancer.modules.shops.store.NoticeStore;
 import de.raindancer.modules.shops.store.ReviewStore;
 import de.raindancer.modules.shops.store.ShopIndex;
@@ -44,6 +45,7 @@ public final class ShopBook implements IShopsService {
     private final Map<UUID, ShopStore.Known> known = new ConcurrentHashMap<>();
     private final Map<UUID, Rating> ratings = new ConcurrentHashMap<>();
     private volatile List<Shop> elsewhere = List.of();
+    private volatile Optional<ShopStore.Fingerprint> seen = Optional.empty();
 
     public ShopBook(ShopIndex index, ShopStore shops, StoreStore stores, TradeStore trades, ReviewStore reviews,
                     NoticeStore notices, ShopWriter writer, Supplier<String> server) {
@@ -70,6 +72,7 @@ public final class ShopBook implements IShopsService {
     public List<Shop> load(long now) {
         String here = server.get();
         List<Shop> retired = shops.retireUnsigned(here, now);
+        seen = shops.fingerprintOutside(here);
         List<Shop> all = shops.all();
         index.replaceAll(all.stream().filter(shop -> shop.spot().isOn(here)).toList());
         elsewhere = all.stream().filter(shop -> !shop.spot().isOn(here)).toList();
@@ -82,19 +85,32 @@ public final class ShopBook implements IShopsService {
         return retired;
     }
 
-    /** Other servers' shops, stores and every rating, again. Blocking; on a timer, off the server thread. */
+    /**
+     * Other servers' shops again, but only when one of them was written since the last look — a one-row question
+     * otherwise. Blocking; on a timer, off the server thread, not through the writer.
+     */
     public void refreshNetwork() {
         String here = server.get();
-        elsewhere = shops.all().stream().filter(shop -> !shop.spot().isOn(here)).toList();
-        for (Store store : stores.all()) {
-            storesById.put(store.id(), store);
+        Optional<ShopStore.Fingerprint> now = shops.fingerprintOutside(here);
+        if (now.isEmpty() || now.equals(seen)) {
+            return;
         }
+        List<Shop> all = shops.all();
+        elsewhere = all.stream().filter(shop -> !shop.spot().isOn(here)).toList();
         Map<UUID, ShopStore.Known> counted = shops.known();
         for (Shop shop : elsewhere) {
             ShopStore.Known count = counted.get(shop.id());
             if (count != null) {
                 known.put(shop.id(), count);
             }
+        }
+        seen = now;
+    }
+
+    /** Every server's stores (names, staff) and every rating, again — they change rarely. Blocking; off the thread. */
+    public void refreshSlowly() {
+        for (Store store : stores.all()) {
+            storesById.put(store.id(), store);
         }
         ratings.putAll(reviews.ratings());
     }
@@ -119,6 +135,12 @@ public final class ShopBook implements IShopsService {
     public void counted(UUID shop, int stock, int room, long sales) {
         known.put(shop, new ShopStore.Known(stock, room, sales));
         writer.write(() -> shops.stock(shop, stock, room, sales));
+    }
+
+    /** A trade happened: the log line and the new count go down together, in one transaction. */
+    public void traded(Trade trade, int stock, int room, long sales) {
+        known.put(trade.shop(), new ShopStore.Known(stock, room, sales));
+        writer.write(() -> trades.record(trade, stock, room, sales));
     }
 
     public ShopStore.Known knownOf(UUID shop) {

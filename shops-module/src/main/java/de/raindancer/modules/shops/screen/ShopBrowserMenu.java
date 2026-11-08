@@ -64,10 +64,20 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
 
     @Override
     protected ItemStack emptyIcon() {
-        return Icons.of(Material.COBWEB, query.isEmpty() ? "<gray>No shops yet" : "<gray>Nothing found",
-                query.isEmpty() ? "<gray>Be the first: /market help" : "<gray>Nobody " + (side == TradeSide.BUY
-                        ? "sells" : "buys") + " " + Text.literal(query) + " right now.",
-                "<yellow>Click to search for something else.");
+        int hidden = withoutStock ? 0 : search.soldOutHidden(
+                services.book().listings(services.config().browseNetwork()), query, side);
+        List<String> lore = new ArrayList<>();
+        lore.add(query.isEmpty() ? "<gray>Be the first: /market help" : "<gray>Nobody " + (side == TradeSide.BUY
+                ? "sells" : "buys") + " " + Text.literal(query) + " right now.");
+        if (hidden > 0) {
+            lore.add("<white>" + hidden + " sold out " + (hidden == 1 ? "shop is" : "shops are") + " hidden:"
+                    + " <gray>switch the eye in the bar.");
+        } else if (!query.isEmpty()) {
+            lore.add("<gray>Try " + (side == TradeSide.BUY ? "the shops that buy" : "the shops that sell")
+                    + " (the bar), or a shorter word.");
+        }
+        lore.add("<yellow>Click to search for something else.");
+        return Icons.of(Material.COBWEB, query.isEmpty() ? "<gray>No shops yet" : "<gray>Nothing found", lore);
     }
 
     @Override

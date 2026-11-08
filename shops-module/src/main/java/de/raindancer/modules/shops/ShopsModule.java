@@ -87,7 +87,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.12.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.13.0")
             .describedAs("Players' own chest shops: an item frame and a [market] sign on a chest, what it sells "
                     + "floating over it, /market to find and trade from afar, reviews and statements; a market "
                     + "world of endless streets with stall plots that rotate")
@@ -223,9 +223,16 @@ public final class ShopsModule implements FlexModule {
                 }
             }
         }));
+        // Read-only, so not through the writer (a scan must not hold up trades): a cheap look every 3 s, a full one
+        // for shops' people and ratings once a minute.
         timers.add(Scheduling.asyncTimer(context.plugin(), 60, 60, task -> {
             if (services.config().browseNetwork()) {
-                writer.write(book::refreshNetwork);
+                guarded(book::refreshNetwork);
+            }
+        }));
+        timers.add(Scheduling.asyncTimer(context.plugin(), 1200, 1200, task -> {
+            if (services.config().browseNetwork()) {
+                guarded(book::refreshSlowly);
             }
         }));
         timers.add(Scheduling.asyncTimer(context.plugin(), 120, 60 * 60 * 6, task -> writer.write(() -> {
@@ -323,6 +330,14 @@ public final class ShopsModule implements FlexModule {
     @Override
     public List<ModuleCommand> commands() {
         return ShopsCommands.declared();
+    }
+
+    private void guarded(Runnable work) {
+        try {
+            work.run();
+        } catch (RuntimeException broken) {
+            log.warn(broken, "Reading the other servers' shops failed: {}", broken.getMessage());
+        }
     }
 
     @Override

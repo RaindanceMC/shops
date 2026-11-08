@@ -70,7 +70,16 @@ public final class ReviewStore {
     }
 
     public Rating rating(UUID shop) {
-        return ratings().getOrDefault(shop, Rating.NONE);
+        return database.read(connection -> {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "SELECT AVG(stars), COUNT(*) FROM review WHERE shop = ?")) {
+                query.setString(1, shop.toString());
+                try (ResultSet rows = query.executeQuery()) {
+                    return rows.next() && rows.getInt(2) > 0 ? new Rating(rows.getDouble(1), rows.getInt(2))
+                            : Rating.NONE;
+                }
+            }
+        }).orElse(Rating.NONE);
     }
 
     /** Every shop's rating at once, for the browser. */

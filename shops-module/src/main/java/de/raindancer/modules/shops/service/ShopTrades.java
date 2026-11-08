@@ -235,9 +235,8 @@ public final class ShopTrades implements IShopsService {
     public static Consumer<TradeDesk.Done> afterwards(ShopBook book, NoticeService notices, Consumer<Shop> show) {
         return done -> {
             Shop shop = done.shop();
-            book.writer().write(() -> book.trades().add(done.trade()));
             long sales = book.knownOf(shop.id()).sales() + 1;
-            book.counted(shop.id(), done.stockAfter(), done.roomAfter(), sales);
+            book.traded(done.trade(), done.stockAfter(), done.roomAfter(), sales);
             boolean sale = done.trade().side() == TradeSide.BUY;
             notices.tell(new Notice(shop.owner(), done.trade().at(), sale ? Notice.Kind.SOLD : Notice.Kind.BOUGHT,
                     shop.id(), shop.name(), sale ? done.trade().net() : done.trade().gross(), done.trade().items(),

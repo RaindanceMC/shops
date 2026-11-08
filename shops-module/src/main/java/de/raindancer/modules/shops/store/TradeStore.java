@@ -22,24 +22,34 @@ public final class TradeStore {
     }
 
     public boolean add(Trade trade) {
+        return database.write(connection -> insert(connection, trade));
+    }
+
+    /** A trade's log line and the shop's new count, committed together — one write, not two. */
+    public boolean record(Trade trade, int stock, int room, long sales) {
         return database.write(connection -> {
-            try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO trade (shop, owner, at, customer, customer_name, side, items, gross, cut, net, ware) "
-                            + "VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
-                row.setString(1, trade.shop().toString());
-                row.setString(2, trade.owner().toString());
-                row.setLong(3, trade.at());
-                row.setString(4, trade.customer().toString());
-                row.setString(5, trade.customerName());
-                row.setString(6, trade.side().name());
-                row.setInt(7, trade.items());
-                row.setLong(8, trade.gross().minor());
-                row.setLong(9, trade.cut().minor());
-                row.setLong(10, trade.net().minor());
-                row.setString(11, trade.ware());
-                row.executeUpdate();
-            }
+            insert(connection, trade);
+            ShopStore.stock(connection, trade.shop(), stock, room, sales);
         });
+    }
+
+    private static void insert(java.sql.Connection connection, Trade trade) throws java.sql.SQLException {
+        try (PreparedStatement row = connection.prepareStatement(
+                "INSERT INTO trade (shop, owner, at, customer, customer_name, side, items, gross, cut, net, ware) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
+            row.setString(1, trade.shop().toString());
+            row.setString(2, trade.owner().toString());
+            row.setLong(3, trade.at());
+            row.setString(4, trade.customer().toString());
+            row.setString(5, trade.customerName());
+            row.setString(6, trade.side().name());
+            row.setInt(7, trade.items());
+            row.setLong(8, trade.gross().minor());
+            row.setLong(9, trade.cut().minor());
+            row.setLong(10, trade.net().minor());
+            row.setString(11, trade.ware());
+            row.executeUpdate();
+        }
     }
 
     public List<Trade> recent(UUID shop, int most) {

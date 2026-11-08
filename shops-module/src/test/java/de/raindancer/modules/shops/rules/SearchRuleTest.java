@@ -78,4 +78,12 @@ class SearchRuleTest {
         assertThat(SearchRule.Order.CHEAPEST.next()).isEqualTo(SearchRule.Order.BEST_RATED);
         assertThat(SearchRule.Order.NEWEST.next()).isEqualTo(SearchRule.Order.CHEAPEST);
     }
+
+    @Test
+    @DisplayName("how many matching shops a search leaves out only for want of stock")
+    void hiddenForWantOfStock() {
+        assertThat(rule.soldOutHidden(List.of(dear, empty, cheap, sword), "diamond", TradeSide.BUY)).isEqualTo(1);
+        assertThat(rule.soldOutHidden(List.of(dear, cheap), "diamond", TradeSide.BUY)).isZero();
+        assertThat(rule.soldOutHidden(List.of(dear, empty, cheap), "sword", TradeSide.BUY)).isZero();
+    }
 }

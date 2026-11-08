@@ -87,7 +87,10 @@ public final class ShopsDatabase {
                     + "owner_name TEXT NOT NULL, claimed BIGINT NOT NULL, paid BIGINT NOT NULL, "
                     + "PRIMARY KEY (server, plot))",
             "CREATE INDEX market_plot_owner ON market_plot (owner)",
-            "CREATE TABLE market_state (server TEXT PRIMARY KEY, last_rotation BIGINT NOT NULL)");
+            "CREATE TABLE market_state (server TEXT PRIMARY KEY, last_rotation BIGINT NOT NULL)",
+            // 0.12.0: a counter every write of an offer raises past all others, so other servers' browsers can tell
+            // "nothing changed" with one small query instead of reading every shop again.
+            "ALTER TABLE offer ADD COLUMN changed BIGINT NOT NULL DEFAULT 0");
 
     private ShopsDatabase() {
     }

@@ -2,12 +2,12 @@ package de.raindancer.modules.shops.command;
 
 import de.raindancer.core.social.economy.TradeSide;
 import de.raindancer.modules.shops.ShopsServices;
+import de.raindancer.modules.shops.rules.MarketTabRule;
 import de.raindancer.modules.shops.util.PermissionNodes;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -22,9 +22,7 @@ import java.util.function.Supplier;
  */
 public final class MarketCommand implements IShopsCommand {
 
-    private static final List<String> WORDS = List.of("browse", "sell", "mine", "plot", "claim", "home", "help",
-            "statement", "admin");
-
+    private final MarketTabRule tab = new MarketTabRule();
     private final Supplier<ShopsServices> services;
 
     public MarketCommand(Supplier<ShopsServices> services) {
@@ -77,8 +75,10 @@ public final class MarketCommand implements IShopsCommand {
                     live.messages().send(player, "shops.market.not-yours");
                     return;
                 }
-                live.plots().layout().plot(mine.get(0).plot()).ifPresent(plot ->
-                        player.teleportAsync(live.plots().front(world.get(), plot)));
+                live.plots().layout().plot(mine.get(0).plot()).ifPresent(plot -> {
+                    live.messages().send(player, "shops.market.home", "plot", mine.get(0).plot());
+                    player.teleportAsync(live.plots().front(world.get(), plot));
+                });
             });
             case "sell" -> live.screens().browse(player, String.join(" ", rest), TradeSide.SELL);
             case "mine" -> live.screens().mine(player);
@@ -89,6 +89,8 @@ public final class MarketCommand implements IShopsCommand {
                     live.messages().send(player, "shops.refused.not-allowed");
                 } else if (rest.length > 0 && rest[0].equalsIgnoreCase("rotate")) {
                     rotate(live, player);
+                } else if (rest.length > 0) {
+                    live.messages().send(player, "shops.usage.admin");
                 } else {
                     live.screens().admin(player);
                 }
@@ -126,18 +128,11 @@ public final class MarketCommand implements IShopsCommand {
 
     @Override
     public Collection<String> suggest(CommandSourceStack source, String[] args) {
-        if (args.length <= 1) {
-            String typed = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            List<String> words = new ArrayList<>();
-            for (String word : WORDS) {
-                if (word.startsWith(typed) && (!word.equals("admin")
-                        || source.getSender().hasPermission(PermissionNodes.ADMIN))) {
-                    words.add(word);
-                }
-            }
-            return words;
-        }
-        return List.of();
+        ShopsServices live = services.get();
+        List<String> wares = live.book().listings(live.config().browseNetwork()).stream()
+                .map(listing -> listing.shop().ware().label()).distinct().toList();
+        return tab.suggest(args, source.getSender().hasPermission(PermissionNodes.ADMIN),
+                live.marketWorld().world().isPresent(), wares);
     }
 
     @Override

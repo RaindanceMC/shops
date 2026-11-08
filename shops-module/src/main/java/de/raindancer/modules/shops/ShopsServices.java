@@ -24,6 +24,9 @@ import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
+import de.raindancer.modules.shops.rules.RefusalDetailRule;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+
 import java.util.function.Supplier;
 
 /**
@@ -64,6 +67,11 @@ public record ShopsServices(
 
     /** Sends a refusal's own sentence. */
     public void refuse(Player player, Refusal why) {
-        messages.send(player, why.key());
+        messages.send(player, why.key(), RefusalDetailRule.of(why, config()));
+    }
+
+    /** A refusal's sentence as plain text, with its numbers, for the reason under a greyed button. */
+    public String reason(Refusal why) {
+        return PlainTextComponentSerializer.plainText().serialize(messages.get(why.key(), RefusalDetailRule.of(why, config())));
     }
 }

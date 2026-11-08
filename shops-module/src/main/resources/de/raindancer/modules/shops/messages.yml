@@ -64,14 +64,14 @@ shops:
     too-many-shops: "<red>You have as many chest shops as you may. Retail empires have rules."
     cannot-pay-to-open: "<red>You cannot pay the price of setting up a shop."
     nothing-to-sell: "<red>Nothing to trade: put the item in the chest's item frame."
-    bad-name: "<red>That name will not do: too long, empty, or full of strange marks."
+    bad-name: "<red>That name will not do: empty, longer than <most> characters, or full of strange marks."
     price-too-high: "<red>That price is above what this server allows. Typo with six zeros?"
     sells-above-buy: "<red>Paying more than you ask? People would sell it back to you forever."
     no-price: "<red>Give it a price first — selling, buying, or both."
     not-allowed: "<red>That is not yours to do."
     world-not-allowed: "<red>No shops in this world."
-    not-a-customer: "<red>Only somebody who traded there lately may review it."
-    review-too-long: "<red>That review is too long, or has odd marks in it."
+    not-a-customer: "<red>Only somebody who traded there in the last <days> days may review it.</red> <gray>Buy or sell something first."
+    review-too-long: "<red>That review is too long, or has odd marks in it.</red> <gray>Up to <most> characters."
     bad-stars: "<red>One to five stars. Not six. Not zero."
     not-for-sale: "<red>That item is bound to somebody or insured — it cannot be traded in a shop."
     not-here: "<red>That shop is on another server. Go there first."
@@ -88,7 +88,11 @@ shops:
     not-your-plot: "<red>That plot is not yours."
     plot-not-empty: "<red>Not while something is left on it:</red> <gray>end its chest shops and empty its chests, frames and stands first."
 
+  usage:
+    admin: "<red>Not a thing I know.</red> <gray>Try <white>/market admin</white> for every shop here, or <white>/market admin rotate</white> to move the stalls."
+
   market:
+    home: "<gray>Off to your stall, plot <white><plot></white>."
     closed: "<red>No market world here.</red> <gray>The shops are still all in <white>/market browse</white>."
     welcome: "<gold>Welcome to the market!</gold> <gray>Walk the streets, or claim a stall plot of your own: stand on one and type <white>/market plot</white>."
     not-yours: "<red>Not your plot.</red> <gray>Claim a free one: <white>/market plot</white>."

@@ -89,9 +89,10 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
             int most = services.trades().most(viewer, shop, TradeSide.SELL, via);
             tradeButton(MenuLayout.RULES, 6, shop, TradeSide.SELL, Math.max(1, most), Material.GOLD_BLOCK,
                     "Sell all you can (" + carried + " carried)");
+            TradeRule.Verdict sellOne = services.trades().preview(viewer, shop, TradeSide.SELL, 1, via);
             band(MenuLayout.LAND, 6, most > 0, Icons.of(Material.NAME_TAG, "<white>Sell an amount…",
                             "<gray>Pick how many bundles, up to " + most + "."),
-                    "You have nothing the shop would take",
+                    sellOne.refusal() == null ? "" : Lines.reason(services, sellOne.refusal()),
                     click -> pick(shop, TradeSide.SELL, most));
         }
         band(MenuLayout.LAND, 3, Icons.of(Material.WRITABLE_BOOK, "<white>Reviews",

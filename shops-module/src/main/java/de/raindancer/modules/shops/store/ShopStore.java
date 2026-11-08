@@ -28,6 +28,12 @@ public final class ShopStore {
     public record Known(int stock, int room, long sales) {
     }
 
+    /** What a server's offers add up to, for telling that one of them was written since — see {@code changed}. */
+    public record Fingerprint(long count, long sum, long newest) {
+    }
+
+    private static final String NEXT = "(SELECT COALESCE(MAX(changed), 0) + 1 FROM offer)";
+
     private static final String COLUMNS = "id, shop, server, world, x, y, z, owner, owner_name, name, material, ware, "
             + "label, buy, sell, bundle, status, created, rent_paid_to, buy_limit, low_stock, name_style, sign, frame, "
             + "floating";
@@ -41,7 +47,8 @@ public final class ShopStore {
     public boolean save(Shop shop) {
         return database.write(connection -> {
             try (PreparedStatement row = connection.prepareStatement(
-                    "INSERT INTO offer (" + COLUMNS + ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                    "INSERT INTO offer (" + COLUMNS + ", changed) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,"
+                            + NEXT + ") "
                             + "ON CONFLICT(id) DO UPDATE SET shop = excluded.shop, server = excluded.server, "
                             + "world = excluded.world, x = excluded.x, y = excluded.y, z = excluded.z, "
                             + "owner = excluded.owner, owner_name = excluded.owner_name, name = excluded.name, "
@@ -50,7 +57,7 @@ public final class ShopStore {
                             + "status = excluded.status, rent_paid_to = excluded.rent_paid_to, "
                             + "buy_limit = excluded.buy_limit, low_stock = excluded.low_stock, "
                             + "name_style = excluded.name_style, sign = excluded.sign, frame = excluded.frame, "
-                            + "floating = excluded.floating")) {
+                            + "floating = excluded.floating, changed = excluded.changed")) {
                 int at = 1;
                 row.setString(at++, shop.id().toString());
                 row.setString(at++, shop.store().toString());
@@ -115,14 +122,34 @@ public final class ShopStore {
 
     /** The stock as last counted, written after a trade so that other servers' browsers can show it. */
     public boolean stock(UUID id, int stock, int room, long sales) {
-        return database.write(connection -> {
-            try (PreparedStatement row = connection.prepareStatement(
-                    "UPDATE offer SET stock = ?, room = ?, sales = ? WHERE id = ?")) {
-                row.setInt(1, stock);
-                row.setInt(2, room);
-                row.setLong(3, sales);
-                row.setString(4, id.toString());
-                row.executeUpdate();
+        return database.write(connection -> stock(connection, id, stock, room, sales));
+    }
+
+    static void stock(Connection connection, UUID id, int stock, int room, long sales) throws SQLException {
+        try (PreparedStatement row = connection.prepareStatement(
+                "UPDATE offer SET stock = ?, room = ?, sales = ?, changed = " + NEXT + " WHERE id = ?")) {
+            row.setInt(1, stock);
+            row.setInt(2, room);
+            row.setLong(3, sales);
+            row.setString(4, id.toString());
+            row.executeUpdate();
+        }
+    }
+
+    /**
+     * What the offers of every other server add up to; equal to the last answer means none of them was saved,
+     * counted or removed since. Empty when the database could not be asked — keep what you have then.
+     */
+    public Optional<Fingerprint> fingerprintOutside(String server) {
+        return database.read(connection -> {
+            try (PreparedStatement query = connection.prepareStatement(
+                    "SELECT COUNT(*), COALESCE(SUM(changed), 0), COALESCE(MAX(changed), 0) FROM offer "
+                            + "WHERE retired = 0 AND server <> ?")) {
+                query.setString(1, server);
+                try (ResultSet rows = query.executeQuery()) {
+                    rows.next();
+                    return new Fingerprint(rows.getLong(1), rows.getLong(2), rows.getLong(3));
+                }
             }
         });
     }

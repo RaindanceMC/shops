@@ -47,6 +47,12 @@ public final class SearchRule implements IShopsRule {
                 .toList();
     }
 
+    /** How many shops the search would show if it did not leave out the sold out ones. */
+    public int soldOutHidden(List<Listing> listings, String typed, TradeSide side) {
+        return find(listings, typed, side, Order.CHEAPEST, true).size()
+                - find(listings, typed, side, Order.CHEAPEST, false).size();
+    }
+
     private Comparator<Listing> comparator(TradeSide side, Order order) {
         Comparator<Listing> price = side == TradeSide.BUY
                 ? (one, other) -> prices.compareBuyPerItem(one.shop().prices(), other.shop().prices())
