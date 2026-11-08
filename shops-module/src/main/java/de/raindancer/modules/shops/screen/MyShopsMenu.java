@@ -95,6 +95,13 @@ public final class MyShopsMenu extends PaginatedMenu<Shop> implements IShopsScre
     }
 
     @Override
+    protected List<String> helpLines() {
+        return List.of("Your chest shops, one button each.",
+                "Click a shop for its back room: prices, stock, log.",
+                "Below: your shop's page, how to set one up,",
+                "your statement, and the market.");
+    }
+    @Override
     public String describe() {
         return "the viewer's own chest shops";
     }

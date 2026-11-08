@@ -154,6 +154,13 @@ public final class ShopBrowserMenu extends PaginatedMenu<Listing> implements ISh
     }
 
     @Override
+    protected List<String> helpLines() {
+        return List.of("The market: every chest shop, searched by what it trades.",
+                "Click one to go to its counter; right click for the",
+                "whole shop. Below: which side you are on (buying or",
+                "selling), the order, the search, and empty shops.");
+    }
+    @Override
     public String describe() {
         return "every shop, searched";
     }

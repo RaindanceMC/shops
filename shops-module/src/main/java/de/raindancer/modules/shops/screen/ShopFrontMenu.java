@@ -170,6 +170,17 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
     }
 
     @Override
+    protected List<String> helpLines() {
+        return List.of("A shop's counter.",
+                "Middle row: buy on the left, sell on the right,",
+                "one bundle, a handful, or as much as you can.",
+                "Below: pick an exact amount, read the reviews,",
+                "and see everything else its owner sells.",
+                "",
+                "Each button says what you pay or get before you click.");
+    }
+
+    @Override
     public String describe() {
         return "a shop's counter, for its customers";
     }

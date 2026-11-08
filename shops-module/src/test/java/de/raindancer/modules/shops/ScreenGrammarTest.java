@@ -130,4 +130,45 @@ class ScreenGrammarTest {
             }
         }
     }
+
+    @Test
+    @DisplayName("buttons that open a page are spaced, not packed shoulder to shoulder")
+    void nothingIsCrammedTogether() {
+        // The claims module's rule, kept here too: the back room once had fifteen buttons in the order they
+        // were written. Doors — buttons that open something — sit at least two columns apart, so a pane falls
+        // between each pair; a control (a price typed, a switch) may sit beside its neighbour.
+        java.util.regex.Pattern placed = java.util.regex.Pattern.compile("band\\(MenuLayout\\.([A-Z]+),\\s*(\\d+)");
+        List<String> packed = new ArrayList<>();
+        for (Screen screen : drawnScreens()) {
+            java.util.Map<String, List<Integer>> byBand = new java.util.LinkedHashMap<>();
+            java.util.regex.Matcher matcher = placed.matcher(screen.body());
+            while (matcher.find()) {
+                String rest = screen.body().substring(matcher.end(), Math.min(screen.body().length(), matcher.end() + 700));
+                int nextButton = rest.indexOf("band(MenuLayout.");
+                String thisButton = nextButton < 0 ? rest : rest.substring(0, nextButton);
+                if (!thisButton.contains(".open()")) {
+                    continue;
+                }
+                byBand.computeIfAbsent(matcher.group(1), band -> new ArrayList<>()).add(Integer.parseInt(matcher.group(2)));
+            }
+            byBand.forEach((band, columns) -> {
+                List<Integer> sorted = new ArrayList<>(new java.util.TreeSet<>(columns));
+                for (int at = 1; at < sorted.size(); at++) {
+                    if (sorted.get(at) - sorted.get(at - 1) < 2) {
+                        packed.add(screen.name() + " " + band + " columns " + sorted.get(at - 1) + "+" + sorted.get(at));
+                    }
+                }
+            });
+        }
+        assertThat(packed).as("these put two doors in neighbouring columns — leave a pane between them").isEmpty();
+    }
+
+    @Test
+    @DisplayName("the pages a command lands on explain themselves")
+    void theFirstPagesHaveHelp() {
+        for (String first : List.of("ShopBrowserMenu", "MyShopsMenu", "ShopFrontMenu", "ShopManageMenu")) {
+            Screen screen = screens().stream().filter(found -> found.name().equals(first)).findFirst().orElseThrow();
+            assertThat(screen.body()).as(first + " has no help button").contains("helpLines()");
+        }
+    }
 }

@@ -93,14 +93,14 @@ public final class StoreManageMenu extends Menu implements IShopsScreen {
                     viewer.closeInventory();
                     services.messages().send(viewer, "shops.help");
                 });
-        band(MenuLayout.RULES, 2, Icons.of(Material.CHEST, "<white>Chest shops (" + offers + ")",
+        band(MenuLayout.RULES, 3, Icons.of(Material.CHEST, "<white>Chest shops (" + offers + ")",
                         "<gray>Click one to look after it."),
                 click -> new StoreMenu(services, viewer, this, store, null).open());
-        band(MenuLayout.RULES, 3, owner, Icons.of(Material.PLAYER_HEAD, "<white>Staff",
+        band(MenuLayout.RULES, 5, owner, Icons.of(Material.PLAYER_HEAD, "<white>Staff",
                         "<gray>" + store.staff().size() + " helping: clerks fill the chests,",
                         "<gray>managers also price the shops."), "Only the owner may",
                 click -> new ShopStaffMenu(services, viewer, this, store).open());
-        band(MenuLayout.RULES, 6, Icons.of(Material.GOLD_INGOT, "<white>Statement", "<gray>What your shops earned."),
+        band(MenuLayout.RULES, 7, Icons.of(Material.GOLD_INGOT, "<white>Statement", "<gray>What your shops earned."),
                 click -> services.screens().statement(viewer));
 
         if (owner) {
