@@ -112,7 +112,6 @@ public final class ShopsModule implements FlexModule {
         SettingsStore<MarketSettings> marketSettings = context.settings(MarketSettings.class, MarketSettings.DEFAULTS);
         context.core().messages().defineFrom(ShopsModule.class.getResourceAsStream("messages.yml"),
                 context.chat().brand()::chatPrefix);
-        context.core().messages().seriousFrom(ShopsModule.class.getResourceAsStream("messages-serious.yml"));
         int registered = PermissionNodes.register(server);
         if (registered > 0) {
             log.info("{} permission(s) registered.", registered);

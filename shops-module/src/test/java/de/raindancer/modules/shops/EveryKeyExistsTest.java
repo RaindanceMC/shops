@@ -50,25 +50,4 @@ class EveryKeyExistsTest {
         assertThat(used).as("the scan found no keys, so it checks nothing").hasSizeGreaterThan(100);
         assertThat(used.stream().distinct()).allSatisfy(name -> assertThat(yaml.isString(name)).as(name).isTrue());
     }
-
-    @Test
-    @DisplayName("the serious lines are lines the playful file has too, with the same placeholders")
-    void seriousMatches() {
-        YamlConfiguration playful = wording("messages.yml");
-        YamlConfiguration serious = wording("messages-serious.yml");
-        Pattern placeholder = Pattern.compile("<([a-z]+)>");
-        for (String name : serious.getKeys(true)) {
-            if (!serious.isString(name)) {
-                continue;
-            }
-            assertThat(playful.isString(name)).as(name + " has no playful line").isTrue();
-            List<String> said = placeholder.matcher(playful.getString(name)).results().map(found -> found.group(1))
-                    .filter(tag -> !Set.of("red", "green", "yellow", "gray", "white", "gold", "aqua", "bold",
-                            "newline", "dark_gray", "dark_red").contains(tag)).distinct().sorted().toList();
-            List<String> plain = placeholder.matcher(serious.getString(name)).results().map(found -> found.group(1))
-                    .filter(tag -> !Set.of("red", "green", "yellow", "gray", "white", "gold", "aqua", "bold",
-                            "newline", "dark_gray", "dark_red").contains(tag)).distinct().sorted().toList();
-            assertThat(plain).as(name).isSubsetOf(said);
-        }
-    }
 }
