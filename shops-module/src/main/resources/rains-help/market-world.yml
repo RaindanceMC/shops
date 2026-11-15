@@ -2,7 +2,7 @@ id: market-world
 title: The Market World
 summary: An endless market town with stall plots of your own, built on and rotated so everybody gets the best spot.
 intro: |
-  A whole town made of market streets, half-timbered houses and a square with a fountain. It is always noon there and never rains — I checked.
+  A town of market streets, half-timbered houses and a square with a fountain. It is always noon there and it never rains.
 icon: RED_WOOL
 category: Economy & trade
 order: 34
@@ -28,17 +28,17 @@ sections:
   - question: Who may build on a plot?
     title: Building
     text: |
-      You, on your own plot — up to <white>{setting:market:build-height}</white> blocks above the street (and a few blocks down). Your shop helpers may build there too. Streets, houses, the square and other people's plots belong to nobody: you cannot break, build, use buckets or open other people's chests there (shops themselves still trade with you as usual).
+      You, on your own plot, up to <white>{setting:market:build-height}</white> blocks above the street (and a few blocks down). Your shop helpers may build there too. Streets, houses, the square and other people's plots are protected: you cannot break, build, use buckets or open other people's chests there (shops themselves still trade with you as usual).
       Nothing flows, spreads, burns, grows or explodes from one plot onto another.
   - question: How do I set up shop on my plot?
     title: Shops on a plot
     text: |
-      Exactly like anywhere else: a chest, an item frame and a [market] sign — see {topic:market-setup}. Plots are just a pleasant, busy place for it. Chest shops on your plot move along with it when the stalls rotate.
+      Exactly like anywhere else: a chest, an item frame and a [market] sign, see {topic:market-setup}. Plots are a busy place for it. Chest shops on your plot move along with it when the stalls rotate.
   - question: What is the rotation?
     title: Rotation
     when: market:rotation-days > 0
     text: |
-      Every <white>{setting:market:rotation-days|days}</white> each <i>built</i> plot moves <white>one place nearer to the square</white>, and the one nearest it goes to the back — so everybody gets a turn at the best spot. Everything on the plot moves with it: blocks, chest contents, signs, item frames and your shops, turned to face the right street. You are told where your stall went, and {run:/market home} always finds it.
+      Every <white>{setting:market:rotation-days|days}</white> each <i>built</i> plot moves <white>one place nearer to the square</white>, and the one nearest it goes to the back, so everybody gets a turn at the best spot. Everything on the plot moves with it: blocks, chest contents, signs, item frames and your shops, turned to face the right street. You are told where your stall went, and {run:/market home} always finds it.
   - question: Is the rotation safe?
     title: Safety of rotation
     when: market:rotation-days > 0
@@ -47,4 +47,4 @@ sections:
   - question: Can I give a plot back?
     title: Giving a plot up
     text: |
-      Yes, with {cmd:/market plot} on the plot, <i>Give this plot up</i> — only when no chest shop is on it and its chests, item frames and stands are empty. It gets its empty stall back; whatever you built on it is taken down. Nothing is refunded.
+      Yes, with {cmd:/market plot} on the plot, <i>Give this plot up</i>. This works only when no chest shop is on it and its chests, item frames and stands are empty. It gets its empty stall back; whatever you built on it is taken down. Nothing is refunded.

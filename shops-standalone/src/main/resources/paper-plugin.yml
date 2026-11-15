@@ -1,10 +1,10 @@
-# Same shape as every other standalone here — see rtp-standalone's copy for why each line matters.
+# Same shape as every other standalone here, see rtp-standalone's copy for why each line matters.
 name: ${plugin.name}
 version: '${plugin.version}'
 main: de.raindancer.modules.wrapper.ModulePlugin
 bootstrapper: de.raindancer.modules.wrapper.ModuleBootstrap
 api-version: '26.3'
-description: "Players' own shops: shopkeepers selling from linked stock chests, a server-wide bazaar to trade from afar, reviews and statements."
+description: "Players' own chest shops, a server-wide market to trade from afar, reviews and statements."
 author: Raindancer118
 website: https://github.com/Raindancer118/RainsCore
 

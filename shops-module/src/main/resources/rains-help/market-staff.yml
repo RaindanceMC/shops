@@ -1,8 +1,8 @@
 id: market-staff
 title: Shops for Staff
-summary: Seeing and closing every shop, taking down reviews, the market's rotation — and what bypasses fees.
+summary: Seeing and closing every shop, taking down reviews, the market's rotation, and what bypasses fees.
 intro: |
-  With great power comes the ability to close somebody's shop in front of their customers. Do try to be fair about it.
+  Staff can see, close and reopen every shop. Use this fairly.
 icon: IRON_BARS
 category: Staff
 order: 35
@@ -19,7 +19,7 @@ sections:
   - question: How do I close a shop?
     title: Closing shops
     text: |
-      From the list (shift-click) or the shop's back room: <white>Close (staff)</white>. A shop closed by staff cannot be reopened by its owner, only by staff; the owner is told who closed it. Removing a shop leaves its chest and stock alone — you never delete anybody's stock. Everything you do here is written to the audit log.
+      From the list (shift-click) or the shop's back room: <white>Close (staff)</white>. A shop closed by staff cannot be reopened by its owner, only by staff; the owner is told who closed it. Removing a shop leaves its chest and stock alone. Nobody's stock is deleted. Everything you do here is written to the audit log.
   - question: Can I take a review down?
     title: Reviews
     text: |
