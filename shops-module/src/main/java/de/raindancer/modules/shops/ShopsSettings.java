@@ -35,7 +35,7 @@ public record ShopsSettings(
         List<String> containers,
 
         @In("shops/opening") @Title("Worlds without shops")
-        @Describe("Worlds where nobody may set up a shop — an arena, a lobby. Everywhere else the land decides.")
+        @Describe("Worlds where nobody may set up a shop, such as an arena or a lobby. Everywhere else the land decides.")
         @Key("worlds-without-shops")
         @Choices(value = Worlds.class, listedMeansOff = true)
         List<String> closedWorlds,
@@ -60,30 +60,30 @@ public record ShopsSettings(
 
         @In("shops/money") @Title("Rent per chest shop per week")
         @Describe("Money each chest shop costs every week, the first week included in setting it up. Unpaid, it pauses "
-                + "until its owner pays — nothing is ever taken away or deleted for it. 0 switches rent off.")
+                + "until its owner pays. Nothing is ever taken away or deleted for it. 0 switches rent off.")
         @Key("rent-per-week")
         String rentPerWeek,
 
         @In("shops/money") @Title("Most weeks paid ahead") @Range(min = 1, max = 52)
-        @Describe("How far ahead an owner may pay rent. Stops a fortune vanishing into rent by a slip.")
+        @Describe("How far ahead an owner may pay rent. Guards against paying far too much by mistake.")
         @Key("most-weeks-ahead")
         int mostWeeksAhead,
 
         @In("shops/money") @Title("Server's cut of every trade (percent)") @Range(min = 0, max = 100)
-        @Describe("How much of what is paid in a trade nobody receives — a sink for money. The buyer pays the price; "
+        @Describe("How much of what is paid in a trade nobody receives, which takes money out of the economy. The buyer pays the price; "
                 + "the seller receives it minus this. 0 is no cut.")
         @Key("server-cut-percent")
         int serverCutPercent,
 
         @In("shops/money") @Title("Highest price for one bundle")
-        @Describe("Money. A ceiling on what a shop may ask or pay for one bundle, against typos with six zeros. 0 is "
+        @Describe("Money. A ceiling on what a shop may ask or pay for one bundle, as a guard against typos. 0 is "
                 + "no ceiling.")
         @Key("most-price")
         String mostPrice,
 
         @In("shops/trading") @Title("Trade what is possible")
         @Describe("Whether a trade too large for the stock, the room or the money is cut down to what is possible "
-                + "rather than refused. Either way the customer is told.")
+                + "instead of refused. Either way the customer is told.")
         @Key("partial-trades")
         boolean partialTrades,
 
@@ -133,7 +133,7 @@ public record ShopsSettings(
         boolean browseNetwork,
 
         @In("shops/finding") @Title("Travel to shops")
-        @Describe("Whether a shop in /market can be clicked to go to its chest — on another server too. The "
+        @Describe("Whether a shop in /market can be clicked to go to its chest, also on another server. The "
                 + "shop's land still decides whether visitors may arrive.")
         @Key("travel-to-shops")
         boolean travelToShops,
@@ -149,25 +149,25 @@ public record ShopsSettings(
         String travelPrice,
 
         @In("shops/opening") @Title("Owners may style names")
-        @Describe("Whether owners may paint their shop's name and motto and their chest shops' names — colours, "
-                + "gradients, bold and the rest, with Core's style editor (right click the name in the shop's pages).")
+        @Describe("Whether owners may paint their shop's name and motto and their chest shops' names with colours, "
+                + "gradients and bold, using Core's style editor (right click the name in the shop's pages).")
         @Key("styled-names")
         boolean styledNames,
 
         @In("shops/finding") @Title("Float what shops sell")
-        @Describe("Whether the item, the price and the name float over each chest shop, always to be seen. Each owner "
-                + "may switch each line off for their own shop; off here, nothing floats anywhere.")
+        @Describe("Whether the item, the price and the name float over each chest shop. Each owner "
+                + "may switch each line off for their own shop. If this is off, nothing floats anywhere.")
         @Key("floating-lines")
         boolean floatingLines,
 
         @In("shops/finding") @Title("Seconds the floating item takes to turn round") @Range(min = 0, max = 60)
-        @Describe("The item over each chest shop slowly turns round, once in this many seconds. 0 keeps it still, "
+        @Describe("The item over each chest shop turns round once in this many seconds. 0 keeps it still, "
                 + "facing whoever looks at it.")
         @Key("item-spin-seconds")
         int itemSpinSeconds,
 
         @In("shops/finding") @Title("Floating item bobs up and down")
-        @Describe("Whether the item over each chest shop gently rises and sinks, like an item dropped on the ground.")
+        @Describe("Whether the item over each chest shop rises and sinks, like an item dropped on the ground.")
         @Key("item-bobs")
         boolean itemBobs) {
 

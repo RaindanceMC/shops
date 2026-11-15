@@ -23,10 +23,10 @@ public final class PrefabFiles {
             Your own builds for the market world, as WorldEdit schematics (.schem, Sponge format 2 or 3).
             They are used for parts of the market generated after the next server start; what is built already stays.
 
-            stalls/  — a stall for every plot nobody has built on yet (one picked per plot).
-                       At most 12 x 12. Copy it with its front facing NORTH; the lowest layer is the ground it stands on.
-            houses/  — house fronts along the cross streets, one after another while they fit; the rest of a row
-                       is built the usual way. At most 7 deep (x) and 25 long (z); front facing WEST.
+            stalls/: a stall for every plot nobody has built on yet (one picked per plot).
+                     At most 12 x 12. Copy it with its front facing NORTH; the lowest layer is the ground it stands on.
+            houses/: house fronts along the cross streets, one after another while they fit; the rest of a row
+                     is built the usual way. At most 7 deep (x) and 25 long (z); front facing WEST.
             Builds at most 23 high. Blocks only: chest contents, signs' text and entities are not copied.
             """;
 

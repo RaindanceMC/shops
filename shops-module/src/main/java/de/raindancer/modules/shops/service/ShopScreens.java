@@ -53,7 +53,7 @@ public final class ShopScreens {
         var own = book.ownedBy(viewer.id()).stream().map(shop -> book.listing(shop, true)).toList();
         StringBuilder text = new StringBuilder("<gold><bold>Your shops</bold></gold>");
         if (own.isEmpty()) {
-            return MINI.deserialize(text + "\n<gray>None yet — <white>/market");
+            return MINI.deserialize(text + "\n<gray>None yet. Use <white>/market");
         }
         var sum = rule.mine(own);
         text.append("\n<gray>Chest shops <white>").append(sum.shops());

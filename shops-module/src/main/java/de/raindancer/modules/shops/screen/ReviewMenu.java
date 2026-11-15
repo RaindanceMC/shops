@@ -42,12 +42,12 @@ public final class ReviewMenu extends Menu implements IShopsScreen {
             int given = stars;
             band(MenuLayout.RULES, stars + 1, Icons.of(stars >= 4 ? Material.GOLD_BLOCK
                             : stars >= 3 ? Material.GOLD_INGOT : Material.GOLD_NUGGET,
-                    "<gold>" + Review.stars(stars), "<yellow>Click to add a line of words",
+                    "<gold>" + Review.stars(stars), "<yellow>Click to add a text",
                     "<yellow>Right click for stars alone"), click -> {
                 if (click.isRightClick()) {
                     send(given, "");
                 } else {
-                    AnvilInput.open(viewer, Review.stars(given) + " — and in words?", "",
+                    AnvilInput.open(viewer, Review.stars(given) + ": add a text?", "",
                             Parsers.text(services.config().reviewLimit()), typed -> send(given, typed), this::open);
                 }
             });

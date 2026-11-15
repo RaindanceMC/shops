@@ -106,7 +106,7 @@ public final class ShopFrontMenu extends Menu implements IShopsScreen {
                         click -> new StoreMenu(services, viewer, this, store, via).open()));
         if (services.book().managerOf(shop, viewer.getUniqueId()) || services.keeper().isAdmin(viewer)) {
             toolbar(4, Icons.of(Material.COMPARATOR, "<white>The back room",
-                            "<gray>Prices, chests, the log — your side of the counter."),
+                            "<gray>Prices, chests and the log: your side of the counter."),
                     click -> new ShopManageMenu(services, viewer, this, shop).open());
         }
     }

@@ -74,7 +74,7 @@ public final class MarketPlotMenu extends Menu implements IShopsScreen {
                             }).open());
         } else {
             PlotClaimRule.Verdict verdict = services.plots().wouldClaim(viewer);
-            String cost = verdict == PlotClaimRule.Verdict.FREE ? "<green>Free — one of your free plots"
+            String cost = verdict == PlotClaimRule.Verdict.FREE ? "<green>Free: one of your free plots"
                     : "<gold>Costs " + Fees.format(services.plots().price());
             band(MenuLayout.WHO, 4, verdict.refusal() == null, Icons.of(Material.OAK_HANGING_SIGN,
                             "<white>Claim this plot",

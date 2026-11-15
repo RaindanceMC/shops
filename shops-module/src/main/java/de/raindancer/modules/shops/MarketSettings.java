@@ -54,7 +54,7 @@ public record MarketSettings(
 
         @In("market/rotation") @Title("Days between rotations") @Range(min = 0, max = 60)
         @Describe("Every so many days each built plot moves one place nearer the market square, and the stall "
-                + "nearest it goes to the back — so everybody gets a turn at the best spot. Blocks, chest contents, "
+                + "nearest it goes to the back, so everybody gets a turn at the best spot. Blocks, chest contents, "
                 + "signs, item frames and shops move along. 0 switches rotating off.")
         @Key("rotation-days")
         int rotationDays,

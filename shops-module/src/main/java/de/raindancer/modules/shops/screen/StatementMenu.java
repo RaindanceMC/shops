@@ -67,7 +67,7 @@ public final class StatementMenu extends Menu implements IShopsScreen {
                 "<gray>" + shown.purchases() + " purchases, " + shown.itemsBought() + " items"));
         List<String> regulars = new ArrayList<>();
         for (Statement.Customer customer : shown.regulars()) {
-            regulars.add("<white>" + Text.literal(customer.name()) + " <gray>— " + customer.trades() + " trades, "
+            regulars.add("<white>" + Text.literal(customer.name()) + "<gray>: " + customer.trades() + " trades, "
                     + Fees.format(customer.spent()));
         }
         if (regulars.isEmpty()) {

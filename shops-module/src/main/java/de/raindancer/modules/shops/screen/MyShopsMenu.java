@@ -79,9 +79,9 @@ public final class MyShopsMenu extends PaginatedMenu<Shop> implements IShopsScre
         super.decorate();
         Optional<Store> store = services.book().storesOf(viewer.getUniqueId()).stream().findFirst();
         toolbar(3, store.isPresent(), Icons.of(Material.OAK_HANGING_SIGN, "<white>Your shop's page",
-                        "<gray>Its name, motto and staff —",
-                        "<gray>clerks fill your chests, managers",
-                        "<gray>also price your shops."), "Set up your first chest shop first",
+                        "<gray>Its name, motto and staff.",
+                        "<gray>Clerks fill your chests,",
+                        "<gray>managers also price your shops."), "Set up your first chest shop first",
                 click -> store.ifPresent(found -> services.screens().storeManage(viewer, found)));
         toolbar(4, Icons.of(Material.BOOK, "<white>How to set up a shop",
                 "<gray>An item frame and a [market] sign."), click -> {
