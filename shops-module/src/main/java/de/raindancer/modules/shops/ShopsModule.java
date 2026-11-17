@@ -87,7 +87,7 @@ import java.util.function.LongSupplier;
  */
 public final class ShopsModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.13.1")
+    private static final ModuleInfo INFO = ModuleInfo.of("shops", "Shops", "0.14.0")
             .describedAs("Players' own chest shops: an item frame and a [market] sign on a chest, what it sells "
                     + "floating over it, /market to find and trade from afar, reviews and statements; a market "
                     + "world of endless streets with stall plots that rotate")
@@ -200,11 +200,28 @@ public final class ShopsModule implements FlexModule {
 
         // The market world, when it is on: made or loaded now, and again whenever it is switched on.
         marketWorld.open();
+        // On /travel only while the market is open.
+        var marketDoor = ShopsOffers.marketDoor(player -> {
+            if (marketWorld.send(player)) {
+                context.core().messages().send(player, "shops.market.welcome");
+            } else {
+                context.core().messages().send(player, "shops.market.closed");
+            }
+        });
+        Runnable doorShown = () -> {
+            de.raindancer.core.ui.travel.TravelDoors.withdraw(marketDoor);
+            if (marketSettings.current().enabled()) {
+                de.raindancer.core.ui.travel.TravelDoors.offer(context.plugin(), marketDoor);
+            }
+        };
+        doorShown.run();
+        context.closeWith(() -> de.raindancer.core.ui.travel.TravelDoors.withdraw(marketDoor));
         marketSettings.onChange(fresh -> {
             plots.market(fresh);
             if (fresh.enabled()) {
                 Scheduling.global(context.plugin(), marketWorld::open);
             }
+            doorShown.run();
         });
         // The stalls rotate at a time, not at a click: is one due? Asked off the thread, rotated on it.
         timers.add(Scheduling.asyncTimer(context.plugin(), 300, 60 * 30, task -> {
