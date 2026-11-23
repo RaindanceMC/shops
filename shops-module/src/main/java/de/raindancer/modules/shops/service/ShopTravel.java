@@ -120,11 +120,6 @@ public final class ShopTravel implements IShopsService {
             }
 
             @Override
-            public void arrived(Player who, Location where, Trip going) {
-                messages.send(who, "shops.travel.arrived", "shop", name);
-            }
-
-            @Override
             public void cancelled(Player who, TravelReason why, Trip going) {
                 Fees.refund(who.getUniqueId(), taken, "Trip to " + name + " cancelled", SOURCE);
                 messages.send(who, "shops.travel.cancelled", "shop", name);

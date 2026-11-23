@@ -125,7 +125,6 @@ shops:
 
   travel:
     counting: "<gray>Going to <white><shop></white> in <white><seconds></white>."
-    arrived: "<green>You arrived at <white><shop></white>."
     cancelled: "<gray>Trip to <white><shop></white> cancelled because you moved. Nothing was charged."
     failed: "<red>Could not get you to <white><shop></white>. Nothing was charged."
 
